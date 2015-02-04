@@ -30,8 +30,8 @@ class BibRecord(object):
         """
         curs = self.interface.connection.cursor()
         result = curs.execute('''SELECT mfhd_id
-        FROM pittdb.bib_mfhd
-        WHERE bib_mfhd.bib_id=:bib''', {'bib': self.bibid})
+        FROM %(db)s.bib_mfhd
+        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database}, {'bib': self.bibid})
 
         rv = []
         for rec in result:
@@ -64,8 +64,9 @@ class HoldingsRecord(object):
 class Voy(object):
     """Interface to Voyager system"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, oracle_database="pittdb", *args, **kwargs):
         self.connection = None
+        self.oracle_database = oracle_database
 
         if all(arg in kwargs for arg in ['oracleuser', 'oraclepass', 'oracledsn']):
             self.connection = cx.connect(kwargs['oracleuser'], kwargs['oraclepass'],
@@ -84,8 +85,9 @@ class Voy(object):
             try:
                 res = curs.execute('''SELECT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
                 bib_master.suppress_in_opac
-                FROM pittdb.bib_data, pittdb.bib_master
-                WHERE bib_data.bib_id = bib_master.bib_id AND bib_data.bib_id=:bib ORDER BY seqnum''', {'bib': bibid})
+                FROM %(db)s.bib_data, %(db)s.bib_master
+                WHERE bib_data.bib_id = bib_master.bib_id AND bib_data.bib_id=:bib ORDER BY seqnum'''
+                % {'db': self.oracle_database}, {'bib': bibid})
                 marc_segments = []
                 for data in res:
                     marc_segments.append(data[0])
@@ -112,11 +114,11 @@ class Voy(object):
              mfhd_master.suppress_in_opac,
              location.location_code,
              location.location_display_name
-             FROM pittdb.mfhd_data, pittdb.mfhd_master, pittdb.location
+             FROM %(db)s.mfhd_data, %(db)s.mfhd_master, %(db)s.location
              WHERE mfhd_data.mfhd_id=:mfhd
              AND mfhd_data.mfhd_id = mfhd_master.mfhd_id
              AND location.location_id = mfhd_master.location_id
-             ORDER BY seqnum''', {'mfhd': mfhdid})
+             ORDER BY seqnum'''% {'db': self.oracle_database}, {'mfhd': mfhdid})
             marc_segments = []
             for data in res:
                 marc_segments.append(data[0])
