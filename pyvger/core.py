@@ -8,19 +8,19 @@ class PyVgerException(Exception):
 
 
 class BibRecord(object):
-    def __init__(self, record, suppressed, bibid, voyagerinterface):
+    def __init__(self, record, suppressed, bibid, voyager_interface):
         self.record = record
         self.suppressed = suppressed
         self.bibid = bibid
-        self.interface = voyagerinterface
+        self.interface = voyager_interface
 
     def __getattr__(self, item):
-        '''Pass on attributes of the pymarc record'''
+        """Pass on attributes of the pymarc record"""
         if hasattr(self.record, item):
             return getattr(self.record, item)
 
     def __getitem__(self, item):
-        ''' Pass on item access for the pymarc record'''
+        """ Pass on item access for the pymarc record"""
         return self.record[item]
 
     def holdings(self):
@@ -43,21 +43,22 @@ class BibRecord(object):
 class HoldingsRecord(object):
     """A single Voyager holding"""
 
-    def __init__(self, record, suppressed, mfhdid, voyagerinterface, location, location_display_name):
+    def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
+                 location_display_name):
         self.record = record
         self.suppressed = suppressed
         self.mfhdid = mfhdid
-        self.interface = voyagerinterface
+        self.interface = voyager_interface
         self.location = location
         self.location_display_name = location_display_name
 
     def __getattr__(self, item):
-        '''Pass on attributes of the pymarc record'''
+        """Pass on attributes of the pymarc record"""
         if hasattr(self.record, item):
             return getattr(self.record, item)
 
     def __getitem__(self, item):
-        ''' Pass on item access for the pymarc record'''
+        """ Pass on item access for the pymarc record"""
         return self.record[item]
 
 
@@ -89,6 +90,7 @@ class Voy(object):
                 WHERE bib_data.bib_id = bib_master.bib_id AND bib_data.bib_id=:bib ORDER BY seqnum'''
                 % {'db': self.oracle_database}, {'bib': bibid})
                 marc_segments = []
+                data = None
                 for data in res:
                     marc_segments.append(data[0])
                 marc = b''.join(marc_segments)
@@ -105,9 +107,8 @@ class Voy(object):
                 print("DB error for bibid |%r|" % bibid)
                 raise
 
-
     def get_mfhd(self, mfhdid):
-        """Get a pymarc.record.Record object for the given Voyager mfhd number"""
+        """Get a HoldingsRecord object for the given Voyager mfhd number"""
         if self.connection:
             curs = self.connection.cursor()
             res = curs.execute('''SELECT utl_i18n.string_to_raw(record_segment) as record_segment,
