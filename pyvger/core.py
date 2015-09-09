@@ -1,6 +1,7 @@
 """core pyvger objects"""
 import cx_Oracle as cx
 import pymarc
+import sqlalchemy as sqla
 
 
 class PyVgerException(Exception):
@@ -72,7 +73,15 @@ class Voy(object):
         if all(arg in kwargs for arg in ['oracleuser', 'oraclepass', 'oracledsn']):
             self.connection = cx.connect(kwargs['oracleuser'], kwargs['oraclepass'],
                                          kwargs['oracledsn'])
-
+            self.engine = sqla.create_engine('oracle://',
+                                             creator=lambda: self.connection)
+        metadata = sqla.MetaData()
+        self.tables={}
+        self.tables['mfhd_master'] = sqla.Table('mfhd_master',
+                                                metadata,
+                                                schema=oracle_database,
+                                                autoload=True,
+                                                autoload_with=self.engine)
 
     def get_bib(self, bibid):
         """get a bibliographic record
@@ -132,3 +141,20 @@ class Voy(object):
             else:
                 raise PyVgerException("Bad suppression value %r for mfhd %s" % (data[1], mfhdid))
             return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3])
+
+    def iter_mfhds(self, locations, include_suppressed=False):
+        """Iterate over all of the holdings in the given locations
+
+        :param locations: list of locations to iterate over
+        :param include_suppressed: whether suppressed records should be included
+        :return: iterator of HoldingsRecord objects
+
+        """
+
+        mm = self.tables['mfhd_master']
+        q = mm.select(mm.c.location_id.in_(locations))
+        if not include_suppressed:
+            q = q.where(mm.c.suppress_in_opac == 'N')
+        r = self.engine.execute(q)
+        for row in r:
+            yield self.get_mfhd(row[0])
