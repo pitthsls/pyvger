@@ -32,7 +32,8 @@ class BibRecord(object):
         curs = self.interface.connection.cursor()
         result = curs.execute('''SELECT mfhd_id
         FROM %(db)s.bib_mfhd
-        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database}, {'bib': self.bibid})
+        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database},
+                              {'bib': self.bibid})
 
         rv = []
         for rec in result:
@@ -66,22 +67,23 @@ class HoldingsRecord(object):
 class Voy(object):
     """Interface to Voyager system"""
 
-    def __init__(self, oracle_database="pittdb", *args, **kwargs):
+    def __init__(self, oracle_database="pittdb", **kwargs):
         self.connection = None
         self.oracle_database = oracle_database
 
-        if all(arg in kwargs for arg in ['oracleuser', 'oraclepass', 'oracledsn']):
-            self.connection = cx.connect(kwargs['oracleuser'], kwargs['oraclepass'],
+        if all(arg in kwargs for arg in ['oracleuser', 'oraclepass',
+                                         'oracledsn']):
+            self.connection = cx.connect(kwargs['oracleuser'],
+                                         kwargs['oraclepass'],
                                          kwargs['oracledsn'])
             self.engine = sqla.create_engine('oracle://',
                                              creator=lambda: self.connection)
         metadata = sqla.MetaData()
-        self.tables={}
-        self.tables['mfhd_master'] = sqla.Table('mfhd_master',
-                                                metadata,
-                                                schema=oracle_database,
-                                                autoload=True,
-                                                autoload_with=self.engine)
+        self.tables = {'mfhd_master': sqla.Table('mfhd_master',
+                                                 metadata,
+                                                 schema=oracle_database,
+                                                 autoload=True,
+                                                 autoload_with=self.engine)}
 
     def get_bib(self, bibid):
         """get a bibliographic record
@@ -93,11 +95,15 @@ class Voy(object):
         if self.connection:
             curs = self.connection.cursor()
             try:
-                res = curs.execute('''SELECT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
+                res = curs.execute('''SELECT
+                utl_i18n.string_to_raw(bib_data.record_segment)
+                as record_segment,
                 bib_master.suppress_in_opac
                 FROM %(db)s.bib_data, %(db)s.bib_master
-                WHERE bib_data.bib_id = bib_master.bib_id AND bib_data.bib_id=:bib ORDER BY seqnum'''
-                % {'db': self.oracle_database}, {'bib': bibid})
+                WHERE bib_data.bib_id = bib_master.bib_id AND
+                bib_data.bib_id=:bib ORDER BY seqnum'''
+                                   % {'db': self.oracle_database},
+                                   {'bib': bibid})
                 marc_segments = []
                 data = None
                 for data in res:
@@ -109,7 +115,8 @@ class Voy(object):
                 elif data[1] == "N":
                     suppress = False
                 else:
-                    raise PyVgerException("Bad suppression value %r for bib %s" % (data[1], bibid))
+                    raise PyVgerException("Bad suppression value %r for bib %s"
+                                          % (data[1], bibid))
                 return BibRecord(rec, suppress, bibid, self)
 
             except cx.DatabaseError:
@@ -120,7 +127,8 @@ class Voy(object):
         """Get a HoldingsRecord object for the given Voyager mfhd number"""
         if self.connection:
             curs = self.connection.cursor()
-            res = curs.execute('''SELECT utl_i18n.string_to_raw(record_segment) as record_segment,
+            res = curs.execute('''SELECT utl_i18n.string_to_raw(record_segment)
+             as record_segment,
              mfhd_master.suppress_in_opac,
              location.location_code,
              location.location_display_name
@@ -128,8 +136,10 @@ class Voy(object):
              WHERE mfhd_data.mfhd_id=:mfhd
              AND mfhd_data.mfhd_id = mfhd_master.mfhd_id
              AND location.location_id = mfhd_master.location_id
-             ORDER BY seqnum'''% {'db': self.oracle_database}, {'mfhd': mfhdid})
+             ORDER BY seqnum''' % {'db': self.oracle_database},
+                               {'mfhd': mfhdid})
             marc_segments = []
+            data = None
             for data in res:
                 marc_segments.append(data[0])
             marc = b''.join(marc_segments)
@@ -139,7 +149,8 @@ class Voy(object):
             elif data[1] == "N":
                 suppress = False
             else:
-                raise PyVgerException("Bad suppression value %r for mfhd %s" % (data[1], mfhdid))
+                raise PyVgerException("Bad suppression value %r for mfhd %s" %
+                                      (data[1], mfhdid))
             return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3])
 
     def iter_mfhds(self, locations, include_suppressed=False):
