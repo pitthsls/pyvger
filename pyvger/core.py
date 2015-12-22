@@ -9,6 +9,13 @@ class PyVgerException(Exception):
 
 
 class BibRecord(object):
+    """
+    A voyager bibliographic record
+    :param record: a valid MARC bibliographic record
+    :param suppressed: boolean; whether the record is suppressed in OPAC
+    :param bibid: bibliographic record ID
+    :param voyager_interface: Voy object to which this record belongs
+    """
     def __init__(self, record, suppressed, bibid, voyager_interface):
         self.record = record
         self.suppressed = suppressed
@@ -43,7 +50,16 @@ class BibRecord(object):
 
 
 class HoldingsRecord(object):
-    """A single Voyager holding"""
+    """
+    A single Voyager holding
+
+    :param record: a valid MARC-encoded holdings record
+    :param suppressed: boolean; whether record is suppressed in OPAC
+    :param mfhdid: holdings ID in database
+    :param voyager_interface: the Voy instance to which this record belongs
+    :param location: textual code for the holding's location
+    :param location_display_name: display name for the holding's location
+    """
 
     def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
                  location_display_name):
@@ -65,7 +81,14 @@ class HoldingsRecord(object):
 
 
 class Voy(object):
-    """Interface to Voyager system"""
+    """
+    Interface to Voyager system
+
+    :param oracle_database: database name prefix
+    :param oracleuser: user name for Voyager Oracle account
+    :param oraclepass: password for oracleuser account
+    :param oracledsn: DSN used to connect to Oracle
+    """
 
     def __init__(self, oracle_database="pittdb", **kwargs):
         self.connection = None

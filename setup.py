@@ -13,4 +13,7 @@ setup(
                       'cx_Oracle>=5.1.2',
                       'sqlAlchemy',
     ],
+    extras_require={
+        'BatchCat': ["pywin32"],
+    }
 )
