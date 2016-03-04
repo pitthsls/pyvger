@@ -102,11 +102,18 @@ class Voy(object):
             self.engine = sqla.create_engine('oracle://',
                                              creator=lambda: self.connection)
         metadata = sqla.MetaData()
-        self.tables = {'mfhd_master': sqla.Table('mfhd_master',
+        tables_to_load = [
+            'mfhd_master',
+            'bib_location',
+            'bib_master',
+        ]
+        self.tables = {}
+        for table_name in tables_to_load:
+            self.tables[table_name] = sqla.Table(table_name,
                                                  metadata,
                                                  schema=oracle_database,
                                                  autoload=True,
-                                                 autoload_with=self.engine)}
+                                                 autoload_with=self.engine)
 
     def get_bib(self, bibid):
         """get a bibliographic record
@@ -192,3 +199,23 @@ class Voy(object):
         r = self.engine.execute(q)
         for row in r:
             yield self.get_mfhd(row[0])
+
+    def iter_bibs(self, locations, include_suppressed=False):
+        """Iterate over all of the bibs in the given locations
+
+        :param locations: list of locations to iterate over
+        :param include_suppressed: whether suppressed records should be included
+        :return: iterator of BibRecord objects
+
+        """
+
+        bl = self.tables['bib_location']
+        bm = self.tables['bib_master']
+        q = bl.select(bl.c.location_id.in_(locations))
+        if not include_suppressed:
+            q = q.where(sqla.and_(bm.c.suppress_in_opac == 'N',
+                                  bm.c.bib_id == bl.c.bib_id)
+                        )
+        r = self.engine.execute(q)
+        for row in r:
+            yield self.get_bib(row[0])
