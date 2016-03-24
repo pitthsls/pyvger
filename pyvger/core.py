@@ -149,8 +149,8 @@ class Voy(object):
                                           % (data[1], bibid))
                 return BibRecord(rec, suppress, bibid, self)
 
-            except cx.DatabaseError:
-                print("DB error for bibid |%r|" % bibid)
+            except Exception:
+                print("error for bibid |%r|" % bibid)
                 raise
 
     def get_mfhd(self, mfhdid):
