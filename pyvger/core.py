@@ -154,7 +154,11 @@ class Voy(object):
                 raise
 
     def get_mfhd(self, mfhdid):
-        """Get a HoldingsRecord object for the given Voyager mfhd number"""
+        """Get a HoldingsRecord object for the given Voyager mfhd number
+
+        :param mfhdid: Voyager holdings ID to fetch
+        :return:
+        """
         if self.connection:
             curs = self.connection.cursor()
             res = curs.execute('''SELECT utl_i18n.string_to_raw(record_segment)
