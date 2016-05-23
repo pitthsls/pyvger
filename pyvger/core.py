@@ -115,6 +115,26 @@ class Voy(object):
                                                  autoload=True,
                                                  autoload_with=self.engine)
 
+    def get_raw_bib(self, bibid):
+        """get raw MARC for a bibliographic record
+
+        :param bibid:
+        :return: bytes of bib record
+        """
+        if self.connection:
+            curs = self.connection.cursor()
+            res = curs.execute('''SELECT
+            utl_i18n.string_to_raw(bib_data.record_segment)
+            as record_segment
+            FROM %(db)s.bib_data
+            WHERE bib_data.bib_id=:bib ORDER BY seqnum'''
+                               % {'db': self.oracle_database},
+                               {'bib': bibid})
+            marc_segments = []
+            for data in res:
+                marc_segments.append(data[0])
+            return b''.join(marc_segments)
+
     def get_bib(self, bibid):
         """get a bibliographic record
 
@@ -204,10 +224,11 @@ class Voy(object):
         for row in r:
             yield self.get_mfhd(row[0])
 
-    def iter_bibs(self, locations, include_suppressed=False):
+    def iter_bibs(self, locations=None, lib_id=None, include_suppressed=False):
         """Iterate over all of the bibs in the given locations
 
         :param locations: list of locations to iterate over
+        :param lib_id: library ID to iterate over instead of using locations
         :param include_suppressed: whether suppressed records should be included
         :return: iterator of BibRecord objects
 
@@ -215,11 +236,19 @@ class Voy(object):
 
         bl = self.tables['bib_location']
         bm = self.tables['bib_master']
-        q = bl.select(bl.c.location_id.in_(locations))
+        if locations and lib_id is None:
+            q = bl.select(bl.c.location_id.in_(locations))
+        elif lib_id:
+            q = bm.select(bm.c.library_id == lib_id)
+        else:
+            raise ValueError("must provide locations or lib_id, and not both")
         if not include_suppressed:
             q = q.where(sqla.and_(bm.c.suppress_in_opac == 'N',
                                   bm.c.bib_id == bl.c.bib_id)
                         )
         r = self.engine.execute(q)
         for row in r:
-            yield self.get_bib(row[0])
+            try:
+                yield self.get_bib(row[0])
+            except UnicodeDecodeError:
+                continue
