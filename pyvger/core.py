@@ -3,81 +3,12 @@ import cx_Oracle as cx
 import pymarc
 import sqlalchemy as sqla
 
+from pyvger.exceptions import PyVgerException, BatchCatNotAvailableError
 
-class PyVgerException(Exception):
-    pass
-
-
-class BibRecord(object):
-    """
-    A voyager bibliographic record
-    :param record: a valid MARC bibliographic record
-    :param suppressed: boolean; whether the record is suppressed in OPAC
-    :param bibid: bibliographic record ID
-    :param voyager_interface: Voy object to which this record belongs
-    """
-    def __init__(self, record, suppressed, bibid, voyager_interface):
-        self.record = record
-        self.suppressed = suppressed
-        self.bibid = bibid
-        self.interface = voyager_interface
-
-    def __getattr__(self, item):
-        """Pass on attributes of the pymarc record"""
-        if hasattr(self.record, item):
-            return getattr(self.record, item)
-
-    def __getitem__(self, item):
-        """ Pass on item access for the pymarc record"""
-        return self.record[item]
-
-    def holdings(self):
-        """get the holdings for this bibliographic record
-
-        :return: a list of HoldingsRecord objects
-        """
-        curs = self.interface.connection.cursor()
-        result = curs.execute('''SELECT mfhd_id
-        FROM %(db)s.bib_mfhd
-        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database},
-                              {'bib': self.bibid})
-
-        rv = []
-        for rec in result:
-            rv.append(self.interface.get_mfhd(rec[0]))
-
-        return rv
-
-
-class HoldingsRecord(object):
-    """
-    A single Voyager holding
-
-    :param record: a valid MARC-encoded holdings record
-    :param suppressed: boolean; whether record is suppressed in OPAC
-    :param mfhdid: holdings ID in database
-    :param voyager_interface: the Voy instance to which this record belongs
-    :param location: textual code for the holding's location
-    :param location_display_name: display name for the holding's location
-    """
-
-    def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
-                 location_display_name):
-        self.record = record
-        self.suppressed = suppressed
-        self.mfhdid = mfhdid
-        self.interface = voyager_interface
-        self.location = location
-        self.location_display_name = location_display_name
-
-    def __getattr__(self, item):
-        """Pass on attributes of the pymarc record"""
-        if hasattr(self.record, item):
-            return getattr(self.record, item)
-
-    def __getitem__(self, item):
-        """ Pass on item access for the pymarc record"""
-        return self.record[item]
+try:
+    from pyvger import batchcat
+except BatchCatNotAvailableError:
+    batchcat = None
 
 
 class Voy(object):
@@ -252,3 +183,75 @@ class Voy(object):
                 yield self.get_bib(row[0])
             except UnicodeDecodeError:
                 continue
+
+
+class BibRecord(object):
+    """
+    A voyager bibliographic record
+    :param record: a valid MARC bibliographic record
+    :param suppressed: boolean; whether the record is suppressed in OPAC
+    :param bibid: bibliographic record ID
+    :param voyager_interface: Voy object to which this record belongs
+    """
+    def __init__(self, record, suppressed, bibid, voyager_interface):
+        self.record = record
+        self.suppressed = suppressed
+        self.bibid = bibid
+        self.interface = voyager_interface
+
+    def __getattr__(self, item):
+        """Pass on attributes of the pymarc record"""
+        if hasattr(self.record, item):
+            return getattr(self.record, item)
+
+    def __getitem__(self, item):
+        """ Pass on item access for the pymarc record"""
+        return self.record[item]
+
+    def holdings(self):
+        """get the holdings for this bibliographic record
+
+        :return: a list of HoldingsRecord objects
+        """
+        curs = self.interface.connection.cursor()
+        result = curs.execute('''SELECT mfhd_id
+        FROM %(db)s.bib_mfhd
+        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database},
+                              {'bib': self.bibid})
+
+        rv = []
+        for rec in result:
+            rv.append(self.interface.get_mfhd(rec[0]))
+
+        return rv
+
+
+class HoldingsRecord(object):
+    """
+    A single Voyager holding
+
+    :param record: a valid MARC-encoded holdings record
+    :param suppressed: boolean; whether record is suppressed in OPAC
+    :param mfhdid: holdings ID in database
+    :param voyager_interface: the Voy instance to which this record belongs
+    :param location: textual code for the holding's location
+    :param location_display_name: display name for the holding's location
+    """
+
+    def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
+                 location_display_name):
+        self.record = record
+        self.suppressed = suppressed
+        self.mfhdid = mfhdid
+        self.interface = voyager_interface
+        self.location = location
+        self.location_display_name = location_display_name
+
+    def __getattr__(self, item):
+        """Pass on attributes of the pymarc record"""
+        if hasattr(self.record, item):
+            return getattr(self.record, item)
+
+    def __getitem__(self, item):
+        """ Pass on item access for the pymarc record"""
+        return self.record[item]

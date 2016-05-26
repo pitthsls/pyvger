@@ -1,13 +1,10 @@
 """BatchCat interface (Windows Only; requires Voyager installation"""
-
-
-class BatchCatNotAvailableError(Exception):
-    pass
-
+from pyvger.exceptions import BatchCatNotAvailableError
 
 try:
     import win32com.client
 except ImportError:
+    win32com = None
     raise BatchCatNotAvailableError
 
 
