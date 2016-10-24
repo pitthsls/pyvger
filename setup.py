@@ -14,5 +14,10 @@ setup(
     ],
     extras_require={
         'BatchCat': ["pywin32"],
-    }
+    },
+    tests_require=[
+        'mock',
+        'pytest',
+    ],
+
 )

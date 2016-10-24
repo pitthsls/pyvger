@@ -1,11 +1,11 @@
 *~
 .idea/
-.hg/
-.hgignore
-batchcatexample.py
 dist/
 *.egg-info/
 html/
 doc/_build/
 *.pyc
 __pycache__
+.cache/
+doc/_static/
+doc/_templates/

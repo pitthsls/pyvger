@@ -70,7 +70,7 @@ class Voy(object):
         """get a bibliographic record
 
         :param bibid: Voyager bibliographic record ID
-        :return: pymarc.bib.VoyagerBib object
+        :return: pyvger.core.BibRecord object
         """
 
         if self.connection:
