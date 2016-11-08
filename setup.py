@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='pyvger',
     description='Interact with Ex Libris Voyager ILS',
-    version='0.2.0',
+    version='0.3.0',
     packages=find_packages(),
     author='Geoffrey Spear',
     author_email='geoffspear@gmail.com',
