@@ -3,12 +3,19 @@ import cx_Oracle as cx
 import pymarc
 import sqlalchemy as sqla
 
-from pyvger.exceptions import PyVgerException, BatchCatNotAvailableError
+from pyvger.exceptions import PyVgerException, BatchCatNotAvailableError, \
+    NoSuchItemException
 
 try:
     from pyvger import batchcat
 except BatchCatNotAvailableError:
     batchcat = None
+
+
+RELATIONS = [
+    (('item', 'item_id'), ('mfhd_item', 'item_id')),
+    (('item', 'item_id'), ('item_note', 'item_id')),
+]
 
 
 class Voy(object):
@@ -37,6 +44,9 @@ class Voy(object):
             'mfhd_master',
             'bib_location',
             'bib_master',
+            'item',
+            'mfhd_item',
+            'item_note',
         ]
         self.tables = {}
         for table_name in tables_to_load:
@@ -45,6 +55,11 @@ class Voy(object):
                                                  schema=oracle_database,
                                                  autoload=True,
                                                  autoload_with=self.engine)
+
+        for parent, foreign in RELATIONS:
+            parent_column = getattr(self.tables[parent[0]].c, parent[1])
+            foreign_key = getattr(self.tables[foreign[0]].c, foreign[1])
+            parent_column.append_foreign_key(sqla.ForeignKey(foreign_key))
 
     def get_raw_bib(self, bibid):
         """get raw MARC for a bibliographic record
@@ -184,6 +199,15 @@ class Voy(object):
             except UnicodeDecodeError:
                 continue
 
+    def get_item(self, item_id):
+        """
+        Get an item record from Voyager
+
+        :param int item_id:
+        :return: ItemRecord -- the item
+        """
+        return ItemRecord.from_id(item_id, self)
+
 
 class BibRecord(object):
     """
@@ -255,3 +279,99 @@ class HoldingsRecord(object):
     def __getitem__(self, item):
         """ Pass on item access for the pymarc record"""
         return self.record[item]
+
+    def get_items(self):
+        """return a list of ItemRecords for the holding's items"""
+        mi_table = self.interface.tables['mfhd_item']
+        query = sqla.select([mi_table.c.item_id]).where(
+            mi_table.c.mfhd_id == self.mfhdid)
+        res = self.interface.engine.execute(query)
+        try:
+            return [self.interface.get_item(i[0]) for i in res]
+        except NoSuchItemException:
+            print("failed for mfhd %s" % self.mfhdid)
+            raise
+
+
+class ItemRecord(object):
+    """A Voyager item
+
+    :param int holding_id: indicates MFHD number for  an item being added
+    :param int item_id: indicates Voyager number of item record being updated
+    :param int item_type_id: indicates valid item type ID from item_type table
+    :param int perm_location_id: indicates valid Voyager location of an item
+    :param bool add_item_to_top:
+    :param str caption:
+    :param str chron:
+    :param int copy_number:
+    :param str enumeration:
+    :param str free_text:
+    :param int media_type_id:
+    :param int piece_count:
+    :param str price:
+    :param str spine_label:
+    :param int temp_location_id:
+    :param int temp_type_id:
+    :param str year:
+    :param Voy voyager_interface:
+    :param str note:
+    """
+    def __init__(self, holding_id=None, item_id=None, item_type_id=None,
+                 perm_location_id=None, add_item_to_top=False, caption="",
+                 chron="", copy_number=0, enumeration="", free_text="",
+                 media_type_id=None, piece_count=1, price="0",
+                 spine_label="", temp_location_id=None, temp_type_id=None,
+                 year="", voyager_interface=None, note=""):
+        self.holding_id = holding_id
+        self.item_id = item_id
+        self.item_type_id = item_type_id
+        self.perm_location_id = perm_location_id
+        self.add_item_to_top = add_item_to_top
+        self.caption = caption
+        self.chron = chron
+        self.copy_number = copy_number
+        self.enumeration = enumeration
+        self.free_text = free_text
+        self.media_type_id = media_type_id
+        self.piece_count = piece_count
+        self.price = price
+        self.spine_label = spine_label
+        self.temp_location_id = temp_location_id
+        self.temp_type_id = temp_type_id
+        self.year = year
+        self.voyager_interface = voyager_interface
+        self.note = note
+
+    @classmethod
+    def from_id(cls, item_id, voyager_interface):
+        it = voyager_interface.tables['item']
+        mit = voyager_interface.tables['mfhd_item']
+        item_note_table = voyager_interface.tables['item_note']
+        #  FIXME: add all necessary columns
+        columns = [
+            it.c.item_id,
+            it.c.perm_location,
+            mit.c.item_enum,
+            item_note_table.c.item_note,
+        ]
+
+        q = sqla.select(columns, it.c.item_id == item_id,
+                        from_obj=[it.join(mit).outerjoin(item_note_table)],
+                        use_labels=False)
+        result = voyager_interface.engine.execute(q)
+        rows = [x for x in result]
+        if not rows:
+            raise NoSuchItemException("item %s not found" % item_id)
+        if len(rows) != 1:
+            print("many notes on item %s" % item_id)
+            print(rows)
+
+        data = rows[0]
+
+        #  FIXME: add new columns to this constructor
+        return cls(item_id=data['item_id'],
+                   perm_location_id=data['perm_location'],
+                   enumeration=data['item_enum'],
+                   note=data['item_note'],
+                   voyager_interface=voyager_interface,
+                   )

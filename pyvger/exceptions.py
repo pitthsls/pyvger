@@ -7,3 +7,7 @@ class PyVgerException(Exception):
 
 class BatchCatNotAvailableError(PyVgerException):
     pass
+
+
+class NoSuchItemException(PyVgerException):
+    pass
