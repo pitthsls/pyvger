@@ -15,7 +15,30 @@ except BatchCatNotAvailableError:
 RELATIONS = [
     (('item', 'item_id'), ('mfhd_item', 'item_id')),
     (('item', 'item_id'), ('item_note', 'item_id')),
+    (('item', 'item_id'), ('item_status', 'item_id')),
+    (('bib_master', 'bib_id'), ('bib_location', 'bib_id')),
+    (('bib_master', 'bib_id'), ('bib_text', 'bib_id')),
+    (('bib_master', 'bib_id'), ('bib_mfhd', 'bib_id')),
+    (('item_status', 'item_status'), ('item_status_type', 'item_status_type')),
+    (('mfhd_master', 'mfhd_id'), ('bib_mfhd', 'mfhd_id')),
+    (('mfhd_master', 'mfhd_id'), ('mfhd_item', 'mfhd_id')),
+    (('location', 'location_id'), ('mfhd_master', 'location_id')),
+    (('location', 'location_id'), ('bib_location', 'location_id')),
 ]
+
+TABLE_NAMES = (
+    'mfhd_master',
+    'bib_location',
+    'bib_master',
+    'item',
+    'mfhd_item',
+    'item_note',
+    'bib_text',
+    'bib_mfhd',
+    'item_status',
+    'item_status_type',
+    'location',
+)
 
 
 class Voy(object):
@@ -40,14 +63,8 @@ class Voy(object):
             self.engine = sqla.create_engine('oracle://',
                                              creator=lambda: self.connection)
         metadata = sqla.MetaData()
-        tables_to_load = [
-            'mfhd_master',
-            'bib_location',
-            'bib_master',
-            'item',
-            'mfhd_item',
-            'item_note',
-        ]
+        tables_to_load = TABLE_NAMES
+
         self.tables = {}
         for table_name in tables_to_load:
             self.tables[table_name] = sqla.Table(table_name,
@@ -207,6 +224,21 @@ class Voy(object):
         :return: ItemRecord -- the item
         """
         return ItemRecord.from_id(item_id, self)
+
+    def get_item_statuses(self, item_id):
+        """
+        Get the statuses from a single item
+
+        :param int item_id:
+        :return: list(str) -- statuses
+        """
+        query = sqla.sql.select(
+            [self.tables['item_status_type'].c.item_status_desc]).select_from(
+            self.tables['item_status'].join(
+                self.tables['item_status_type'])).where(
+            self.tables['item_status'].c.item_id == item_id)
+        r = self.engine.execute(query)
+        return [row[0] for row in r]
 
 
 class BibRecord(object):
