@@ -11,6 +11,7 @@ try:
 except BatchCatNotAvailableError:
     batchcat = None
 
+import six.moves.configparser as configparser
 
 RELATIONS = [
     (('item', 'item_id'), ('mfhd_item', 'item_id')),
@@ -19,9 +20,11 @@ RELATIONS = [
     (('bib_master', 'bib_id'), ('bib_location', 'bib_id')),
     (('bib_master', 'bib_id'), ('bib_text', 'bib_id')),
     (('bib_master', 'bib_id'), ('bib_mfhd', 'bib_id')),
+    (('bib_master', 'bib_id'), ('bib_index', 'bib_id')),
     (('item_status', 'item_status'), ('item_status_type', 'item_status_type')),
     (('mfhd_master', 'mfhd_id'), ('bib_mfhd', 'mfhd_id')),
     (('mfhd_master', 'mfhd_id'), ('mfhd_item', 'mfhd_id')),
+    (('bib_mfhd', 'mfhd_id'), ('mfhd_item', 'mfhd_id')),
     (('location', 'location_id'), ('mfhd_master', 'location_id')),
     (('location', 'location_id'), ('bib_location', 'location_id')),
 ]
@@ -30,6 +33,7 @@ TABLE_NAMES = (
     'mfhd_master',
     'bib_location',
     'bib_master',
+    'bib_index',
     'item',
     'mfhd_item',
     'item_note',
@@ -51,15 +55,24 @@ class Voy(object):
     :param oracledsn: DSN used to connect to Oracle
     """
 
-    def __init__(self, oracle_database="pittdb", **kwargs):
+    def __init__(self, oracle_database="pittdb", config=None, **kwargs):
         self.connection = None
         self.oracle_database = oracle_database
+        cfg = {}
+        if config is not None:
+            cf = configparser.ConfigParser()
+            cf.read(config)
+            for item in ('oracleuser', 'oraclepass', 'oracledsn'):
+                val = cf.get('Voyager', item, raw=True).strip('"')
+                if val:
+                    cfg[item] = val
 
-        if all(arg in kwargs for arg in ['oracleuser', 'oraclepass',
-                                         'oracledsn']):
-            self.connection = cx.connect(kwargs['oracleuser'],
-                                         kwargs['oraclepass'],
-                                         kwargs['oracledsn'])
+        cfg.update(kwargs)
+
+        if all(arg in cfg for arg in ['oracleuser', 'oraclepass', 'oracledsn']):
+            self.connection = cx.connect(cfg['oracleuser'],
+                                         cfg['oraclepass'],
+                                         cfg['oracledsn'])
             self.engine = sqla.create_engine('oracle://',
                                              creator=lambda: self.connection)
         metadata = sqla.MetaData()
@@ -239,6 +252,34 @@ class Voy(object):
             self.tables['item_status'].c.item_id == item_id)
         r = self.engine.execute(query)
         return [row[0] for row in r]
+
+    def bib_id_for_item(self, item_id):
+        """
+        Get the bibliographic record ID associated with an item record
+
+        :param int item_id: the Voyager item ID
+        :return: int: the bib ID
+        """
+        query = sqla.sql.select(
+            [self.tables['bib_mfhd'].c.bib_id]).select_from(
+            self.tables['mfhd_item'].join(self.tables['bib_mfhd'])).where(
+                self.tables['mfhd_item'].c.item_id == item_id)
+
+        result = self.engine.execute(query)
+        (row,) = result
+        return row[0]
+
+    def get_bib_create_datetime(self, bib_id):
+        """
+
+        :param int bib_id: the Voyager bib id
+        :return: datetime.datetime: when the record was added
+        """
+        bmt = self.tables['bib_master']
+        query = bmt.select().where(bmt.c.bib_id == bib_id)
+        result = self.engine.execute(query)
+        (row,) = result
+        return row.create_date
 
 
 class BibRecord(object):
