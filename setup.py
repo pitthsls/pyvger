@@ -11,6 +11,7 @@ setup(
     install_requires=['pymarc>=2.8.4',
                       'cx_Oracle>=5.1.2',
                       'sqlAlchemy',
+                      'six',
     ],
     extras_require={
         'BatchCat': ["pywin32"],
