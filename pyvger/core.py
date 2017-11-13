@@ -50,6 +50,7 @@ class Voy(object):
     Interface to Voyager system
 
     :param oracle_database: database name prefix
+    :param config: configuration file path
     :param oracleuser: user name for Voyager Oracle account
     :param oraclepass: password for oracleuser account
     :param oracledsn: DSN used to connect to Oracle

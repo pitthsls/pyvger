@@ -1,6 +1,11 @@
 """pyvger - interact with Ex Libris Voyager"""
-from pyvger.core import Voy
+import os
 
-__version__ = "0.6.0"
+from pyvger.core import Voy
+from pyvger.helper import recode
+
+os.environ["NLS_LANG"] = "American_America.UTF8"
+
+__version__ = "0.7.0"
 
 __all__ = [Voy]
