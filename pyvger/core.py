@@ -17,6 +17,7 @@ RELATIONS = [
     (('item', 'item_id'), ('mfhd_item', 'item_id')),
     (('item', 'item_id'), ('item_note', 'item_id')),
     (('item', 'item_id'), ('item_status', 'item_id')),
+    (('item', 'item_id'), ('item_barcode', 'item_id')),
     (('bib_master', 'bib_id'), ('bib_location', 'bib_id')),
     (('bib_master', 'bib_id'), ('bib_text', 'bib_id')),
     (('bib_master', 'bib_id'), ('bib_mfhd', 'bib_id')),
@@ -42,6 +43,7 @@ TABLE_NAMES = (
     'item_status',
     'item_status_type',
     'location',
+    'item_barcode',
 )
 
 
