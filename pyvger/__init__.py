@@ -6,6 +6,6 @@ from pyvger.helper import recode
 
 os.environ["NLS_LANG"] = "American_America.UTF8"
 
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 
 __all__ = [Voy]

@@ -9,7 +9,7 @@ except ImportError:
 
 
 class BatchCatClient(object):
-    def __init__(self, username, password, apppath=r'C:\Voyager'):
+    def __init__(self, username, password, voy_interface, apppath=r'C:\Voyager'):
         """
         a connected batchcat client
         :param username: Voyager cataloging username
@@ -24,5 +24,6 @@ class BatchCatClient(object):
         (For a complete list of methods available see the BatchCat
         manual that comes with Voyager)
         """
+        self.voy_interface = voy_interface
         self.bc = win32com.client.Dispatch("BatchCat.ClassBatchCat")
         self.bc.Connect(AppPath=apppath, UserName=username, Password=password)

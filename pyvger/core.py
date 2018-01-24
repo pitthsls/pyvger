@@ -56,6 +56,9 @@ class Voy(object):
     :param oracleuser: user name for Voyager Oracle account
     :param oraclepass: password for oracleuser account
     :param oracledsn: DSN used to connect to Oracle
+    :param voy_username: Voyager username to login via BatchCat
+    :param voy_password: Voyager password to login via BatchCat
+    :param voy_path: path to directory containing Voyager.ini for BatchCat
     """
 
     def __init__(self, oracle_database="pittdb", config=None, **kwargs):
@@ -65,7 +68,8 @@ class Voy(object):
         if config is not None:
             cf = configparser.ConfigParser()
             cf.read(config)
-            for item in ('oracleuser', 'oraclepass', 'oracledsn'):
+            for item in ('oracleuser', 'oraclepass', 'oracledsn',
+                         'voy_username', 'voy_password', 'voy_path'):
                 val = cf.get('Voyager', item, raw=True).strip('"')
                 if val:
                     cfg[item] = val
@@ -78,21 +82,32 @@ class Voy(object):
                                          cfg['oracledsn'])
             self.engine = sqla.create_engine('oracle://',
                                              creator=lambda: self.connection)
-        metadata = sqla.MetaData()
-        tables_to_load = TABLE_NAMES
+            metadata = sqla.MetaData()
+            tables_to_load = TABLE_NAMES
 
-        self.tables = {}
-        for table_name in tables_to_load:
-            self.tables[table_name] = sqla.Table(table_name,
-                                                 metadata,
-                                                 schema=oracle_database,
-                                                 autoload=True,
-                                                 autoload_with=self.engine)
+            self.tables = {}
+            for table_name in tables_to_load:
+                self.tables[table_name] = sqla.Table(table_name,
+                                                     metadata,
+                                                     schema=oracle_database,
+                                                     autoload=True,
+                                                     autoload_with=self.engine)
 
-        for parent, foreign in RELATIONS:
-            parent_column = getattr(self.tables[parent[0]].c, parent[1])
-            foreign_key = getattr(self.tables[foreign[0]].c, foreign[1])
-            parent_column.append_foreign_key(sqla.ForeignKey(foreign_key))
+            for parent, foreign in RELATIONS:
+                parent_column = getattr(self.tables[parent[0]].c, parent[1])
+                foreign_key = getattr(self.tables[foreign[0]].c, foreign[1])
+                parent_column.append_foreign_key(sqla.ForeignKey(foreign_key))
+
+        if 'voy_path' not in cfg:
+            cfg['voy_path'] = r'C:\Voyager'
+
+        if batchcat is not None and all(arg in cfg for arg in ['voy_username', 'voy_password']):
+            self.batchcat = batchcat.BatchCatClient(username=cfg['voy_username'],
+                                                    password=cfg['voy_password'],
+                                                    voy_interface=self,
+                                                    apppath=cfg['voy_path'])
+        else:
+            self.batchcat = None
 
     def get_raw_bib(self, bibid):
         """get raw MARC for a bibliographic record
