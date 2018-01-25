@@ -268,6 +268,17 @@ class Voy(object):
         (row,) = result
         return row.create_date
 
+    def get_location_id(self, location):
+        """Get numeric ID for location
+
+        :param location: Voyager location code
+        :return: int: numeric location id
+        """
+        query = self.tables['location'].select().where(self.tables['location'].c.location_code == location)
+        result = self.engine.execute(query)
+        (row,) = result
+        return int(row.location_id)
+
 
 class BibRecord(object):
     """
