@@ -1,4 +1,5 @@
 """core pyvger objects"""
+import arrow
 import cx_Oracle as cx
 import pymarc
 import sqlalchemy as sqla
@@ -107,14 +108,13 @@ class Voy(object):
         if self.connection:
             curs = self.connection.cursor()
             try:
-                res = curs.execute('''SELECT
-                utl_i18n.string_to_raw(bib_data.record_segment)
-                as record_segment,
-                bib_master.suppress_in_opac
-                FROM %(db)s.bib_data, %(db)s.bib_master
-                WHERE bib_data.bib_id = bib_master.bib_id AND
-                bib_data.bib_id=:bib ORDER BY seqnum'''
-                                   % {'db': self.oracle_database},
+                res = curs.execute("""SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment, 
+                bib_master.suppress_in_opac, MAX(action_date) over (partition by bib_history.bib_id) maxdate, 
+                bib_master.suppress_in_opac, bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master 
+                on bib_history.bib_id = bib_master.bib_id JOIN %(db)s.bib_data 
+                ON bib_master.bib_id = bib_data.bib_id WHERE bib_history.BIB_ID = :bib
+                ORDER BY seqnum"""
+                     % {'db': self.oracle_database},
                                    {'bib': bibid})
                 marc_segments = []
                 data = None
@@ -129,7 +129,8 @@ class Voy(object):
                 else:
                     raise PyVgerException("Bad suppression value %r for bib %s"
                                           % (data[1], bibid))
-                return BibRecord(rec, suppress, bibid, self)
+                last_date = arrow.get(data[2]).datetime
+                return BibRecord(rec, suppress, bibid, self, last_date)
 
             except Exception:
                 print("error for bibid |%r|" % bibid)
@@ -275,11 +276,18 @@ class BibRecord(object):
     :param suppressed: boolean; whether the record is suppressed in OPAC
     :param bibid: bibliographic record ID
     :param voyager_interface: Voy object to which this record belongs
+    :param last_date: datetime.datetime of last update from BIB_HISTORY table
+
+    WARNING: last_date should have its tzinfo set to UTC even if the naive time in the database is "really"
+    from another timezone. The Voyager database doesn't know what timezone is being used, and the
+    win32com methods used for BatchCat will convert non-UTC datetimes to UTC, then the server
+    will ignore the TZ and fail because it thinks your datetime is off by your local offset.
     """
-    def __init__(self, record, suppressed, bibid, voyager_interface):
+    def __init__(self, record, suppressed, bibid, voyager_interface, last_date=None):
         self.record = record
         self.suppressed = suppressed
         self.bibid = bibid
+        self.last_date = last_date
         self.interface = voyager_interface
 
     def __getattr__(self, item):
