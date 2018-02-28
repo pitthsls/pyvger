@@ -39,7 +39,7 @@ class Voy(object):
             cf.read(config)
             for item in ('oracleuser', 'oraclepass', 'oracledsn',
                          'voy_username', 'voy_password', 'voy_path'):
-                val = cf.get('Voyager', item, raw=True).strip('"')
+                val = cf.get('Voyager', item, fallback='', raw=True).strip('"')
                 if val:
                     cfg[item] = val
 
@@ -369,6 +369,10 @@ class HoldingsRecord(object):
         except NoSuchItemException:
             print("failed for mfhd %s" % self.mfhdid)
             raise
+
+    def get_bib(self):
+        """Return the bib record to which this holding is attached."""
+        return self.interface.get_bib(self.record['004'].data)
 
 
 class ItemRecord(object):
