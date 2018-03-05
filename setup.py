@@ -1,9 +1,16 @@
+import os
+
 from setuptools import setup, find_packages
+
+_version = {}
+with open(os.path.join(os.path.dirname(__file__), 'pyvger', 'version.py')) as fp:
+    exec(fp.read(), _version)
+
 
 setup(
     name='pyvger',
     description='Interact with Ex Libris Voyager ILS',
-    version='0.8.0',
+    version=_version['__version__'],
     packages=find_packages(),
     author='Geoffrey Spear',
     author_email='geoffspear@gmail.com',

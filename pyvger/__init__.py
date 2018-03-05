@@ -3,9 +3,12 @@ import os
 
 from pyvger.core import Voy
 from pyvger.helper import recode
+from pyvger.version import __version__
 
 os.environ["NLS_LANG"] = "American_America.UTF8"
 
-__version__ = "0.8.0"
 
-__all__ = [Voy]
+__all__ = ['Voy',
+           '__version__',
+           'recode',
+           ]
