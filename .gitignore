@@ -9,3 +9,6 @@ __pycache__
 .cache/
 doc/_static/
 doc/_templates/
+/.coverage
+htmlcov/
+unicodeexample.py

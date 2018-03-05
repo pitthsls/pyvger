@@ -1,2 +1,3 @@
 recursive-include doc *.py
 recursive-include doc *.rst
+include .coveragerc
