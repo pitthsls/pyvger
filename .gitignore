@@ -12,3 +12,5 @@ doc/_templates/
 /.coverage
 htmlcov/
 unicodeexample.py
+.tox
+.pytest_cache
