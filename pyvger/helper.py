@@ -1,3 +1,4 @@
+"""Helper functions."""
 import sqlalchemy as sqla
 
 raw = sqla.sql.expression.func.utl_i18n.string_to_raw

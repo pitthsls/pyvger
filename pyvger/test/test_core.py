@@ -1,5 +1,7 @@
+import pytest
+
 import pyvger
-import pyvger.batchcat
+import pyvger.exceptions
 
 
 def test_vger(mocker):
@@ -10,6 +12,7 @@ def test_vger(mocker):
 
 
 def test_voy_bc(mocker):
+    pytest.importorskip('win32com')
     mocker.patch('pyvger.batchcat.win32com')
     pyvger.core.Voy(voy_username='test', voy_password='test')
     assert pyvger.batchcat.win32com.client.Dispatch.called

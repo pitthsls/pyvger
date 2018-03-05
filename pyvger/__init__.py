@@ -1,4 +1,4 @@
-"""pyvger - interact with Ex Libris Voyager"""
+"""pyvger - interact with Ex Libris Voyager."""
 import os
 
 from pyvger.core import Voy

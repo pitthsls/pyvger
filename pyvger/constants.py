@@ -1,4 +1,4 @@
-"""constants for mapping Oracle tables to sqlalchemy"""
+"""Constants for mapping Oracle tables to sqlalchemy."""
 
 RELATIONS = [
     (('item', 'item_id'), ('mfhd_item', 'item_id')),

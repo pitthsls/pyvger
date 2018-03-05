@@ -1,6 +1,7 @@
-from os.path import join, dirname
+"""Installer."""
+from os.path import dirname, join
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 _version = {}
 with open(join(dirname(__file__), 'pyvger', 'version.py')) as fp:
