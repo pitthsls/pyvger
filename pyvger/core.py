@@ -1,24 +1,27 @@
-"""core pyvger objects"""
+"""core pyvger objects."""
+
 import arrow
+
 import cx_Oracle as cx
+
 import pymarc
+
+import six.moves.configparser as configparser
+
 import sqlalchemy as sqla
 
 from pyvger.constants import RELATIONS, TABLE_NAMES
-from pyvger.exceptions import PyVgerException, BatchCatNotAvailableError, \
-    NoSuchItemException
+from pyvger.exceptions import BatchCatNotAvailableError, NoSuchItemException, PyVgerException
 
 try:
     from pyvger import batchcat
 except BatchCatNotAvailableError:
     batchcat = None
 
-import six.moves.configparser as configparser
-
 
 class Voy(object):
     """
-    Interface to Voyager system
+    Interface to Voyager system.
 
     :param oracle_database: database name prefix
     :param config: configuration file path
@@ -79,7 +82,7 @@ class Voy(object):
             self.batchcat = None
 
     def get_raw_bib(self, bibid):
-        """get raw MARC for a bibliographic record
+        """Get raw MARC for a bibliographic record.
 
         :param bibid:
         :return: bytes of bib record
@@ -99,12 +102,11 @@ class Voy(object):
             return b''.join(marc_segments)
 
     def get_bib(self, bibid):
-        """get a bibliographic record
+        """Get a bibliographic record.
 
         :param bibid: Voyager bibliographic record ID
         :return: pyvger.core.BibRecord object
         """
-
         if self.connection:
             curs = self.connection.cursor()
             try:
@@ -135,7 +137,7 @@ class Voy(object):
                 raise
 
     def get_mfhd(self, mfhdid):
-        """Get a HoldingsRecord object for the given Voyager mfhd number
+        """Get a HoldingsRecord object for the given Voyager mfhd number.
 
         :param mfhdid: Voyager holdings ID to fetch
         :return:
@@ -169,14 +171,13 @@ class Voy(object):
             return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3])
 
     def iter_mfhds(self, locations, include_suppressed=False):
-        """Iterate over all of the holdings in the given locations
+        """Iterate over all of the holdings in the given locations.
 
         :param locations: list of locations to iterate over
         :param include_suppressed: whether suppressed records should be included
         :return: iterator of HoldingsRecord objects
 
         """
-
         mm = self.tables['mfhd_master']
         q = mm.select(mm.c.location_id.in_(locations))
         if not include_suppressed:
@@ -186,7 +187,7 @@ class Voy(object):
             yield self.get_mfhd(row[0])
 
     def iter_bibs(self, locations=None, lib_id=None, include_suppressed=False):
-        """Iterate over all of the bibs in the given locations
+        """Iterate over all of the bibs in the given locations.
 
         :param locations: list of locations to iterate over
         :param lib_id: library ID to iterate over instead of using locations
@@ -194,7 +195,6 @@ class Voy(object):
         :return: iterator of BibRecord objects
 
         """
-
         bl = self.tables['bib_location']
         bm = self.tables['bib_master']
         if locations and lib_id is None:
@@ -216,7 +216,7 @@ class Voy(object):
 
     def get_item(self, item_id):
         """
-        Get an item record from Voyager
+        Get an item record from Voyager.
 
         :param int item_id:
         :return: ItemRecord -- the item
@@ -225,7 +225,7 @@ class Voy(object):
 
     def get_item_statuses(self, item_id):
         """
-        Get the statuses from a single item
+        Get the statuses from a single item.
 
         :param int item_id:
         :return: list(str) -- statuses
@@ -240,7 +240,7 @@ class Voy(object):
 
     def bib_id_for_item(self, item_id):
         """
-        Get the bibliographic record ID associated with an item record
+        Get the bibliographic record ID associated with an item record.
 
         :param int item_id: the Voyager item ID
         :return: int: the bib ID
@@ -255,7 +255,7 @@ class Voy(object):
         return row[0]
 
     def get_bib_create_datetime(self, bib_id):
-        """
+        """Get date when a record was added.
 
         :param int bib_id: the Voyager bib id
         :return: datetime.datetime: when the record was added
@@ -267,7 +267,7 @@ class Voy(object):
         return row.create_date
 
     def get_location_id(self, location):
-        """Get numeric ID for location
+        """Get numeric ID for location.
 
         :param location: Voyager location code
         :return: int: numeric location id
@@ -280,7 +280,8 @@ class Voy(object):
 
 class BibRecord(object):
     """
-    A voyager bibliographic record
+    A voyager bibliographic record.
+
     :param record: a valid MARC bibliographic record
     :param suppressed: boolean; whether the record is suppressed in OPAC
     :param bibid: bibliographic record ID
@@ -292,6 +293,7 @@ class BibRecord(object):
     win32com methods used for BatchCat will convert non-UTC datetimes to UTC, then the server
     will ignore the TZ and fail because it thinks your datetime is off by your local offset.
     """
+
     def __init__(self, record, suppressed, bibid, voyager_interface, last_date=None):
         self.record = record
         self.suppressed = suppressed
@@ -300,16 +302,16 @@ class BibRecord(object):
         self.interface = voyager_interface
 
     def __getattr__(self, item):
-        """Pass on attributes of the pymarc record"""
+        """Pass on attributes of the pymarc record."""
         if hasattr(self.record, item):
             return getattr(self.record, item)
 
     def __getitem__(self, item):
-        """ Pass on item access for the pymarc record"""
+        """Pass on item access for the pymarc record."""
         return self.record[item]
 
     def holdings(self):
-        """get the holdings for this bibliographic record
+        """Get the holdings for this bibliographic record.
 
         :return: a list of HoldingsRecord objects
         """
@@ -328,7 +330,7 @@ class BibRecord(object):
 
 class HoldingsRecord(object):
     """
-    A single Voyager holding
+    A single Voyager holding.
 
     :param record: a valid MARC-encoded holdings record
     :param suppressed: boolean; whether record is suppressed in OPAC
@@ -348,16 +350,16 @@ class HoldingsRecord(object):
         self.location_display_name = location_display_name
 
     def __getattr__(self, item):
-        """Pass on attributes of the pymarc record"""
+        """Pass on attributes of the pymarc record."""
         if hasattr(self.record, item):
             return getattr(self.record, item)
 
     def __getitem__(self, item):
-        """ Pass on item access for the pymarc record"""
+        """Pass on item access for the pymarc record."""
         return self.record[item]
 
     def get_items(self):
-        """return a list of ItemRecords for the holding's items"""
+        """Return a list of ItemRecords for the holding's items."""
         mi_table = self.interface.tables['mfhd_item']
         query = sqla.select([mi_table.c.item_id]).where(
             mi_table.c.mfhd_id == self.mfhdid)
@@ -374,7 +376,7 @@ class HoldingsRecord(object):
 
 
 class ItemRecord(object):
-    """A Voyager item
+    """A Voyager item.
 
     :param int holding_id: indicates MFHD number for  an item being added
     :param int item_id: indicates Voyager number of item record being updated
@@ -396,6 +398,7 @@ class ItemRecord(object):
     :param Voy voyager_interface:
     :param str note:
     """
+
     def __init__(self, holding_id=None, item_id=None, item_type_id=None,
                  perm_location_id=None, add_item_to_top=False, caption="",
                  chron="", copy_number=0, enumeration="", free_text="",
@@ -424,6 +427,7 @@ class ItemRecord(object):
 
     @classmethod
     def from_id(cls, item_id, voyager_interface):
+        """Get item given ID."""
         it = voyager_interface.tables['item']
         mit = voyager_interface.tables['mfhd_item']
         item_note_table = voyager_interface.tables['item_note']

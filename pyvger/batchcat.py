@@ -24,6 +24,7 @@ class BatchCatClient(object):
     (For a complete list of methods available see the BatchCat
     manual that comes with Voyager)
     """
+
     def __init__(self, username, password, voy_interface,
                  apppath=r'C:\Voyager'):
 
