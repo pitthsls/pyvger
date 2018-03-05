@@ -108,14 +108,12 @@ class Voy(object):
         if self.connection:
             curs = self.connection.cursor()
             try:
-                res = curs.execute("""SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment, 
-                bib_master.suppress_in_opac, MAX(action_date) over (partition by bib_history.bib_id) maxdate, 
-                bib_master.suppress_in_opac, bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master 
-                on bib_history.bib_id = bib_master.bib_id JOIN %(db)s.bib_data 
+                res = curs.execute("""SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
+                bib_master.suppress_in_opac, MAX(action_date) over (partition by bib_history.bib_id) maxdate,
+                bib_master.suppress_in_opac, bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master
+                on bib_history.bib_id = bib_master.bib_id JOIN %(db)s.bib_data
                 ON bib_master.bib_id = bib_data.bib_id WHERE bib_history.BIB_ID = :bib
-                ORDER BY seqnum"""
-                     % {'db': self.oracle_database},
-                                   {'bib': bibid})
+                ORDER BY seqnum""" % {'db': self.oracle_database}, {'bib': bibid})
                 marc_segments = []
                 data = None
                 for data in res:
