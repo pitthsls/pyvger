@@ -9,7 +9,8 @@ except ImportError:
 
 
 class BatchCatClient(object):
-    def __init__(self, username, password, voy_interface, apppath=r'C:\Voyager'):
+    def __init__(self, username, password, voy_interface,
+                 apppath=r'C:\Voyager'):
         """
         a connected batchcat client
         :param username: Voyager cataloging username

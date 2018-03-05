@@ -1,9 +1,9 @@
-import os
+from os.path import join, dirname
 
 from setuptools import setup, find_packages
 
 _version = {}
-with open(os.path.join(os.path.dirname(__file__), 'pyvger', 'version.py')) as fp:
+with open(join(dirname(__file__), 'pyvger', 'version.py')) as fp:
     exec(fp.read(), _version)
 
 
@@ -20,7 +20,7 @@ setup(
                       'sqlAlchemy',
                       'six',
                       'arrow'
-    ],
+                      ],
     extras_require={
         'BatchCat': ["pywin32"],
     },
