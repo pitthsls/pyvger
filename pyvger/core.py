@@ -112,7 +112,7 @@ class Voy(object):
             try:
                 res = curs.execute("""SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
                 bib_master.suppress_in_opac, MAX(action_date) over (partition by bib_history.bib_id) maxdate,
-                bib_master.suppress_in_opac, bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master
+                bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master
                 on bib_history.bib_id = bib_master.bib_id JOIN %(db)s.bib_data
                 ON bib_master.bib_id = bib_data.bib_id WHERE bib_history.BIB_ID = :bib
                 ORDER BY seqnum""" % {'db': self.oracle_database}, {'bib': bibid})
@@ -144,15 +144,18 @@ class Voy(object):
         """
         if self.connection:
             curs = self.connection.cursor()
-            res = curs.execute('''SELECT utl_i18n.string_to_raw(record_segment)
+            res = curs.execute('''SELECT DISTINCT utl_i18n.string_to_raw(record_segment)
              as record_segment,
              mfhd_master.suppress_in_opac,
              location.location_code,
-             location.location_display_name
-             FROM %(db)s.mfhd_data, %(db)s.mfhd_master, %(db)s.location
+             location.location_display_name,
+             MAX(action_date) over (partition by mfhd_history.mfhd_id) maxdate,
+             mfhd_data.seqnum
+             FROM %(db)s.mfhd_data, %(db)s.mfhd_master, %(db)s.location, %(db)s.mfhd_history
              WHERE mfhd_data.mfhd_id=:mfhd
              AND mfhd_data.mfhd_id = mfhd_master.mfhd_id
              AND location.location_id = mfhd_master.location_id
+             AND mfhd_history.mfhd_id = mfhd_master.mfhd_id
              ORDER BY seqnum''' % {'db': self.oracle_database},
                                {'mfhd': mfhdid})
             marc_segments = []
@@ -168,7 +171,8 @@ class Voy(object):
             else:
                 raise PyVgerException("Bad suppression value %r for mfhd %s" %
                                       (data[1], mfhdid))
-            return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3])
+            last_date = arrow.get(data[4]).datetime
+            return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3], last_date)
 
     def iter_mfhds(self, locations, include_suppressed=False):
         """Iterate over all of the holdings in the given locations.
@@ -338,16 +342,23 @@ class HoldingsRecord(object):
     :param voyager_interface: the Voy instance to which this record belongs
     :param location: textual code for the holding's location
     :param location_display_name: display name for the holding's location
+    :param last_date: datetime.datetime of last update from BIB_HISTORY table
+
+    WARNING: last_date should have its tzinfo set to UTC even if the naive time in the database is "really"
+    from another timezone. The Voyager database doesn't know what timezone is being used, and the
+    win32com methods used for BatchCat will convert non-UTC datetimes to UTC, then the server
+    will ignore the TZ and fail because it thinks your datetime is off by your local offset.
     """
 
     def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
-                 location_display_name):
+                 location_display_name, last_date):
         self.record = record
         self.suppressed = suppressed
         self.mfhdid = mfhdid
         self.interface = voyager_interface
         self.location = location
         self.location_display_name = location_display_name
+        self.last_date = last_date
 
     def __getattr__(self, item):
         """Pass on attributes of the pymarc record."""
