@@ -46,7 +46,7 @@ class Voy(object):
                 if val:
                     cfg[item] = val
             if cf.get('Voyager', 'connectstring') and 'oracledsn' not in cfg:
-                cf['oracledsn'] = cf.get('Voyager', 'connectstring', raw=True).strip('"')
+                cfg['oracledsn'] = cf.get('Voyager', 'connectstring', raw=True).strip('"')
 
         cfg.update(kwargs)
 
