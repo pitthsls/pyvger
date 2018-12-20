@@ -1,4 +1,5 @@
 """core pyvger objects."""
+import warnings
 
 import arrow
 
@@ -123,6 +124,8 @@ class Voy(object):
                 for data in res:
                     marc_segments.append(data[0])
                 marc = b''.join(marc_segments)
+                if not marc:
+                    raise PyVgerException("No MARC data for bib %s" % bibid)
                 rec = next(pymarc.MARCReader(marc))
                 if data[1] == "Y":
                     suppress = True
@@ -165,6 +168,8 @@ class Voy(object):
             for data in res:
                 marc_segments.append(data[0])
             marc = b''.join(marc_segments)
+            if not marc:
+                raise PyVgerException("No MARC data for MFHD %s" % mfhdid)
             rec = next(pymarc.MARCReader(marc))
             if data[1] == "Y":
                 suppress = True
@@ -190,7 +195,10 @@ class Voy(object):
             q = q.where(mm.c.suppress_in_opac == 'N')
         r = self.engine.execute(q)
         for row in r:
-            yield self.get_mfhd(row[0])
+            try:
+                yield self.get_mfhd(row[0])
+            except PyVgerException:
+                warnings.warn("Skipping record %s" % row[0])
 
     def iter_bibs(self, locations=None, lib_id=None, include_suppressed=False):
         """Iterate over all of the bibs in the given locations.
