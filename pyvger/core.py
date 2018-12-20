@@ -190,9 +190,11 @@ class Voy(object):
 
         """
         mm = self.tables['mfhd_master']
-        q = mm.select(mm.c.location_id.in_(locations))
+        where_clause = mm.c.location_id.in_(locations)
         if not include_suppressed:
-            q = q.where(mm.c.suppress_in_opac == 'N')
+            where_clause = sqla.and_(mm.c.suppress_in_opac == 'N', where_clause)
+        q = sqla.select([mm.c.mfhd_id], whereclause=where_clause, ).order_by(mm.c.mfhd_id)
+
         r = self.engine.execute(q)
         for row in r:
             try:
@@ -227,6 +229,26 @@ class Voy(object):
                 yield self.get_bib(row[0])
             except UnicodeDecodeError:
                 continue
+
+    def iter_items(self, locations, include_temporary=False, include_suppressed_mfhd=False):
+        """Iterate over the item records in one or more locations.
+
+        :param locations: list of locations to iterate over
+        :param include_temporary: bool whether to include items with temporary locations in locations list
+        :param include_suppressed_mfhd: bool, whether to include items attached to a suppressed MFHD
+        """
+        item_table = self.tables['item']
+        where_clause = item_table.c.perm_location.in_(locations)
+        if include_temporary:
+            where_clause = sqla.or_(where_clause, item_table.c.temp_location.in_(locations))
+        if not include_suppressed_mfhd:
+            where_clause = sqla.and_(self.tables['mfhd_master'].c.suppress_in_opac == "N", where_clause)
+        q = sqla.select([item_table.c.item_id],
+                        whereclause=where_clause,
+                        from_obj=[item_table.join(self.tables['mfhd_item']).join(self.tables['mfhd_master'])])
+        r = self.engine.execute(q)
+        for row in r:
+            yield self.get_item(row[0])
 
     def get_item(self, item_id):
         """
@@ -445,6 +467,16 @@ class ItemRecord(object):
         self.year = year
         self.voyager_interface = voyager_interface
         self.note = note
+
+    def get_mfhd(self):
+        """Retrieve the holdings record to which this item is attached."""
+        mi = self.voyager_interface.tables['mfhd_item']
+        q = mi.select(mi.c.item_id == self.item_id)
+        r = self.voyager_interface.engine.execute(q)
+        rows = list(r)
+        if len(rows) > 1:
+            raise PyVgerException("Multiple MFHDs attached to item %s", self.item_id)
+        return self.voyager_interface.get_mfhd(rows[0]['mfhd_id'])
 
     @classmethod
     def from_id(cls, item_id, voyager_interface):
