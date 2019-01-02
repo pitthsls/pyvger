@@ -250,14 +250,18 @@ class Voy(object):
         for row in r:
             yield self.get_item(row[0])
 
-    def get_item(self, item_id):
+    def get_item(self, item_id=None, barcode=None):
         """
         Get an item record from Voyager.
 
         :param int item_id:
+        :param str barcode:
         :return: ItemRecord -- the item
         """
-        return ItemRecord.from_id(item_id, self)
+        if item_id is not None:
+            return ItemRecord.from_id(item_id, self)
+        else:
+            return ItemRecord.from_barcode(barcode, self)
 
     def get_item_statuses(self, item_id):
         """
@@ -512,3 +516,18 @@ class ItemRecord(object):
                    note=data['item_note'],
                    voyager_interface=voyager_interface,
                    )
+
+    @classmethod
+    def from_barcode(cls, barcode, voyager_interface):
+        ib = voyager_interface.tables['item_barcode']
+        q = sqla.select([ib.c.item_id], ib.c.item_barcode==barcode)
+        result = voyager_interface.engine.execute(q)
+        rows = [x for x in result]
+        if not rows:
+            raise NoSuchItemException("item for barcode %s not found" % barcode)
+        if len(rows) != 1:
+            print("many items attached to barcode %s" % barcode)
+            print(rows)
+
+        item_id = rows[0][0]
+        return cls.from_id(item_id, voyager_interface)
