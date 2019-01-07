@@ -531,3 +531,16 @@ class ItemRecord(object):
 
         item_id = rows[0][0]
         return cls.from_id(item_id, voyager_interface)
+
+    def get_barcode(self):
+        ib = self.voyager_interface.tables['item_barcode']
+        q = sqla.select([ib.c.item_barcode], sqla.and_(ib.c.item_id == self.item_id, ib.c.barcode_status == "1"))
+        result = self.voyager_interface.engine.execute(q)
+        rows = [x for x in result]
+        if not rows:
+            raise NoSuchItemException("barcode for item %s not found" % self.item_id)
+        if len(rows) != 1:
+            print("many active barcodes attached to item %s" % self.item_id)
+            print(rows)
+
+        return rows[0][0]
