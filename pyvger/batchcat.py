@@ -1,5 +1,5 @@
 """BatchCat interface (Windows Only; requires Voyager installation)."""
-from pyvger.exceptions import BatchCatNotAvailableError
+from pyvger.exceptions import BatchCatNotAvailableError, PyVgerException
 
 try:
     import win32com.client
@@ -30,4 +30,6 @@ class BatchCatClient(object):
 
         self.voy_interface = voy_interface
         self.bc = win32com.client.Dispatch("BatchCat.ClassBatchCat")
-        self.bc.Connect(AppPath=apppath, UserName=username, Password=password)
+        result = self.bc.Connect(AppPath=apppath, UserName=username, Password=password)
+        if result[0]:
+            raise PyVgerException("Connect error {}".format(result[0:3]))
