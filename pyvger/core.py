@@ -488,12 +488,25 @@ class ItemRecord(object):
         it = voyager_interface.tables['item']
         mit = voyager_interface.tables['mfhd_item']
         item_note_table = voyager_interface.tables['item_note']
-        #  FIXME: add all necessary columns
+
         columns = [
             it.c.item_id,
             it.c.perm_location,
             mit.c.item_enum,
             item_note_table.c.item_note,
+            mit.c.chron,
+            mit.c.mfhd_id,
+            it.c.item_type_id,
+            mit.c.caption,
+            it.c.copy_number,
+            mit.c.freetext,
+            it.c.media_type_id,
+            it.c.pieces,
+            it.c.price,
+            it.c.spine_label,
+            it.c.temp_location,
+            it.c.temp_item_type_id,
+            mit.c.year,
         ]
 
         q = sqla.select(columns, it.c.item_id == item_id,
@@ -509,11 +522,23 @@ class ItemRecord(object):
 
         data = rows[0]
 
-        #  FIXME: add new columns to this constructor
         return cls(item_id=data['item_id'],
                    perm_location_id=data['perm_location'],
                    enumeration=data['item_enum'],
+                   chron=data['chron'],
                    note=data['item_note'],
+                   holding_id=data['mfhd_id'],
+                   item_type_id=data['item_type_id'],
+                   caption=data['caption'],
+                   copy_number=data['copy_number'],
+                   free_text=data['freetext'],
+                   media_type_id=data['media_type_id'],
+                   piece_count=data['pieces'],
+                   price=data['price'],
+                   spine_label=data['spine_label'],
+                   temp_location_id=data['temp_location'],
+                   temp_type_id=data['temp_item_type_id'],
+                   year=data['year'],
                    voyager_interface=voyager_interface,
                    )
 
