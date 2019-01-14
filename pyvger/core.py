@@ -32,6 +32,8 @@ class Voy(object):
     :param voy_username: Voyager username to login via BatchCat
     :param voy_password: Voyager password to login via BatchCat
     :param voy_path: path to directory containing Voyager.ini for BatchCat
+    :param cat_location: location name of cataloging location
+    :param library_id: library ID number
     """
 
     def __init__(self, oracle_database="pittdb", config=None, **kwargs):
@@ -42,7 +44,8 @@ class Voy(object):
             cf = configparser.ConfigParser()
             cf.read(config)
             for item in ('oracleuser', 'oraclepass', 'oracledsn',
-                         'voy_username', 'voy_password', 'voy_path'):
+                         'voy_username', 'voy_password', 'voy_path',
+                         'cat_location', 'library_id'):
                 val = cf.get('Voyager', item, fallback='', raw=True).strip('"')
                 if val:
                     cfg[item] = val
@@ -72,6 +75,9 @@ class Voy(object):
                 parent_column = getattr(self.tables[parent[0]].c, parent[1])
                 foreign_key = getattr(self.tables[foreign[0]].c, foreign[1])
                 parent_column.append_foreign_key(sqla.ForeignKey(foreign_key))
+
+        self.cat_location = cfg["cat_location"]
+        self.library_id = cfg["library_id"]
 
         if 'voy_path' not in cfg:
             cfg['voy_path'] = r'C:\Voyager'
