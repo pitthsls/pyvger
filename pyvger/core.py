@@ -550,8 +550,9 @@ class ItemRecord(object):
 
     @classmethod
     def from_barcode(cls, barcode, voyager_interface):
+        """Get an item record given its barcode."""
         ib = voyager_interface.tables['item_barcode']
-        q = sqla.select([ib.c.item_id], ib.c.item_barcode==barcode)
+        q = sqla.select([ib.c.item_id], ib.c.item_barcode == barcode)
         result = voyager_interface.engine.execute(q)
         rows = [x for x in result]
         if not rows:
@@ -564,6 +565,7 @@ class ItemRecord(object):
         return cls.from_id(item_id, voyager_interface)
 
     def get_barcode(self):
+        """Look up the active bacode for this item."""
         ib = self.voyager_interface.tables['item_barcode']
         q = sqla.select([ib.c.item_barcode], sqla.and_(ib.c.item_id == self.item_id, ib.c.barcode_status == "1"))
         result = self.voyager_interface.engine.execute(q)
@@ -577,6 +579,7 @@ class ItemRecord(object):
         return rows[0][0]
 
     def save(self):
+        """Save the item record back to the database."""
         batchcat = self.voyager_interface.batchcat
         if batchcat is None:
             raise BatchCatNotAvailableError
@@ -597,7 +600,7 @@ class ItemRecord(object):
         bc.cItem.TempLocationID = self.temp_location_id
         bc.cItem.TempTypeID = self.temp_type_id
         bc.cItem.Year = self.year or ""
-        result = bc.UpdateItemData(CatLocationID = self.voyager_interface.get_location_id(
+        result = bc.UpdateItemData(CatLocationID=self.voyager_interface.get_location_id(
             self.voyager_interface.cat_location))
         if result[0]:
             raise PyVgerException("UpdateItemData error: {}".format(result))
