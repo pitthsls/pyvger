@@ -76,8 +76,8 @@ class Voy(object):
                 foreign_key = getattr(self.tables[foreign[0]].c, foreign[1])
                 parent_column.append_foreign_key(sqla.ForeignKey(foreign_key))
 
-        self.cat_location = cfg["cat_location"]
-        self.library_id = cfg["library_id"]
+        self.cat_location = cfg.get("cat_location")
+        self.library_id = cfg.get("library_id")
 
         if 'voy_path' not in cfg:
             cfg['voy_path'] = r'C:\Voyager'
