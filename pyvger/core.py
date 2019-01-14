@@ -575,3 +575,29 @@ class ItemRecord(object):
             print(rows)
 
         return rows[0][0]
+
+    def save(self):
+        batchcat = self.voyager_interface.batchcat
+        if batchcat is None:
+            raise BatchCatNotAvailableError
+        bc = batchcat.bc
+        bc.cItem.HoldingId = self.holding_id
+        bc.cItem.ItemID = self.item_id
+        bc.cItem.ItemTypeID = self.item_type_id
+        bc.cItem.PermLocationID = self.perm_location_id
+        bc.cItem.Caption = self.caption or ""
+        bc.cItem.Chron = self.chron or ""
+        bc.cItem.CopyNumber = self.copy_number
+        bc.cItem.Enumeration = self.enumeration or ""
+        bc.cItem.FreeText = self.free_text or ""
+        bc.cItem.MediaTypeID = self.media_type_id
+        bc.cItem.PieceCount = self.piece_count
+        bc.cItem.Price = self.price
+        bc.cItem.SpineLabel = self.spine_label or ""
+        bc.cItem.TempLocationID = self.temp_location_id
+        bc.cItem.TempTypeID = self.temp_type_id
+        bc.cItem.Year = self.year or ""
+        result = bc.UpdateItemData(CatLocationID = self.voyager_interface.get_location_id(
+            self.voyager_interface.cat_location))
+        if result[0]:
+            raise PyVgerException("UpdateItemData error: {}".format(result))
