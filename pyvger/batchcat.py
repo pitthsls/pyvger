@@ -25,8 +25,7 @@ class BatchCatClient(object):
     manual that comes with Voyager)
     """
 
-    def __init__(self, username, password, voy_interface,
-                 apppath=r'C:\Voyager'):
+    def __init__(self, username, password, voy_interface, apppath=r"C:\Voyager"):
 
         self.voy_interface = voy_interface
         self.bc = win32com.client.Dispatch("BatchCat.ClassBatchCat")

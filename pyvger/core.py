@@ -12,7 +12,11 @@ import six.moves.configparser as configparser
 import sqlalchemy as sqla
 
 from pyvger.constants import RELATIONS, TABLE_NAMES
-from pyvger.exceptions import BatchCatNotAvailableError, NoSuchItemException, PyVgerException
+from pyvger.exceptions import (
+    BatchCatNotAvailableError,
+    NoSuchItemException,
+    PyVgerException,
+)
 
 try:
     from pyvger import batchcat
@@ -43,33 +47,45 @@ class Voy(object):
         if config is not None:
             cf = configparser.ConfigParser()
             cf.read(config)
-            for item in ('oracleuser', 'oraclepass', 'oracledsn',
-                         'voy_username', 'voy_password', 'voy_path',
-                         'cat_location', 'library_id'):
-                val = cf.get('Voyager', item, fallback='', raw=True).strip('"')
+            for item in (
+                "oracleuser",
+                "oraclepass",
+                "oracledsn",
+                "voy_username",
+                "voy_password",
+                "voy_path",
+                "cat_location",
+                "library_id",
+            ):
+                val = cf.get("Voyager", item, fallback="", raw=True).strip('"')
                 if val:
                     cfg[item] = val
-            if cf.get('Voyager', 'connectstring') and 'oracledsn' not in cfg:
-                cfg['oracledsn'] = cf.get('Voyager', 'connectstring', raw=True).strip('"')
+            if cf.get("Voyager", "connectstring") and "oracledsn" not in cfg:
+                cfg["oracledsn"] = cf.get("Voyager", "connectstring", raw=True).strip(
+                    '"'
+                )
 
         cfg.update(kwargs)
 
-        if all(arg in cfg for arg in ['oracleuser', 'oraclepass', 'oracledsn']):
-            self.connection = cx.connect(cfg['oracleuser'],
-                                         cfg['oraclepass'],
-                                         cfg['oracledsn'])
-            self.engine = sqla.create_engine('oracle://',
-                                             creator=lambda: self.connection)
+        if all(arg in cfg for arg in ["oracleuser", "oraclepass", "oracledsn"]):
+            self.connection = cx.connect(
+                cfg["oracleuser"], cfg["oraclepass"], cfg["oracledsn"]
+            )
+            self.engine = sqla.create_engine(
+                "oracle://", creator=lambda: self.connection
+            )
             metadata = sqla.MetaData()
             tables_to_load = TABLE_NAMES
 
             self.tables = {}
             for table_name in tables_to_load:
-                self.tables[table_name] = sqla.Table(table_name,
-                                                     metadata,
-                                                     schema=oracle_database,
-                                                     autoload=True,
-                                                     autoload_with=self.engine)
+                self.tables[table_name] = sqla.Table(
+                    table_name,
+                    metadata,
+                    schema=oracle_database,
+                    autoload=True,
+                    autoload_with=self.engine,
+                )
 
             for parent, foreign in RELATIONS:
                 parent_column = getattr(self.tables[parent[0]].c, parent[1])
@@ -79,14 +95,18 @@ class Voy(object):
         self.cat_location = cfg.get("cat_location")
         self.library_id = cfg.get("library_id")
 
-        if 'voy_path' not in cfg:
-            cfg['voy_path'] = r'C:\Voyager'
+        if "voy_path" not in cfg:
+            cfg["voy_path"] = r"C:\Voyager"
 
-        if batchcat is not None and all(arg in cfg for arg in ['voy_username', 'voy_password']):
-            self.batchcat = batchcat.BatchCatClient(username=cfg['voy_username'],
-                                                    password=cfg['voy_password'],
-                                                    voy_interface=self,
-                                                    apppath=cfg['voy_path'])
+        if batchcat is not None and all(
+            arg in cfg for arg in ["voy_username", "voy_password"]
+        ):
+            self.batchcat = batchcat.BatchCatClient(
+                username=cfg["voy_username"],
+                password=cfg["voy_password"],
+                voy_interface=self,
+                apppath=cfg["voy_path"],
+            )
         else:
             self.batchcat = None
 
@@ -98,17 +118,19 @@ class Voy(object):
         """
         if self.connection:
             curs = self.connection.cursor()
-            res = curs.execute('''SELECT
+            res = curs.execute(
+                """SELECT
             utl_i18n.string_to_raw(bib_data.record_segment)
             as record_segment
             FROM %(db)s.bib_data
-            WHERE bib_data.bib_id=:bib ORDER BY seqnum'''
-                               % {'db': self.oracle_database},
-                               {'bib': bibid})
+            WHERE bib_data.bib_id=:bib ORDER BY seqnum"""
+                % {"db": self.oracle_database},
+                {"bib": bibid},
+            )
             marc_segments = []
             for data in res:
                 marc_segments.append(data[0])
-            return b''.join(marc_segments)
+            return b"".join(marc_segments)
 
     def get_bib(self, bibid):
         """Get a bibliographic record.
@@ -119,17 +141,21 @@ class Voy(object):
         if self.connection:
             curs = self.connection.cursor()
             try:
-                res = curs.execute("""SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
+                res = curs.execute(
+                    """SELECT DISTINCT utl_i18n.string_to_raw(bib_data.record_segment) as record_segment,
                 bib_master.suppress_in_opac, MAX(action_date) over (partition by bib_history.bib_id) maxdate,
                 bib_data.seqnum FROM %(db)s.BIB_HISTORY JOIN %(db)s.bib_master
                 on bib_history.bib_id = bib_master.bib_id JOIN %(db)s.bib_data
                 ON bib_master.bib_id = bib_data.bib_id WHERE bib_history.BIB_ID = :bib
-                ORDER BY seqnum""" % {'db': self.oracle_database}, {'bib': bibid})
+                ORDER BY seqnum"""
+                    % {"db": self.oracle_database},
+                    {"bib": bibid},
+                )
                 marc_segments = []
                 data = None
                 for data in res:
                     marc_segments.append(data[0])
-                marc = b''.join(marc_segments)
+                marc = b"".join(marc_segments)
                 if not marc:
                     raise PyVgerException("No MARC data for bib %s" % bibid)
                 rec = next(pymarc.MARCReader(marc))
@@ -138,8 +164,9 @@ class Voy(object):
                 elif data[1] == "N":
                     suppress = False
                 else:
-                    raise PyVgerException("Bad suppression value %r for bib %s"
-                                          % (data[1], bibid))
+                    raise PyVgerException(
+                        "Bad suppression value %r for bib %s" % (data[1], bibid)
+                    )
                 last_date = arrow.get(data[2]).datetime
                 return BibRecord(rec, suppress, bibid, self, last_date)
 
@@ -155,7 +182,8 @@ class Voy(object):
         """
         if self.connection:
             curs = self.connection.cursor()
-            res = curs.execute('''SELECT DISTINCT utl_i18n.string_to_raw(record_segment)
+            res = curs.execute(
+                """SELECT DISTINCT utl_i18n.string_to_raw(record_segment)
              as record_segment,
              mfhd_master.suppress_in_opac,
              location.location_code,
@@ -167,13 +195,15 @@ class Voy(object):
              AND mfhd_data.mfhd_id = mfhd_master.mfhd_id
              AND location.location_id = mfhd_master.location_id
              AND mfhd_history.mfhd_id = mfhd_master.mfhd_id
-             ORDER BY seqnum''' % {'db': self.oracle_database},
-                               {'mfhd': mfhdid})
+             ORDER BY seqnum"""
+                % {"db": self.oracle_database},
+                {"mfhd": mfhdid},
+            )
             marc_segments = []
             data = None
             for data in res:
                 marc_segments.append(data[0])
-            marc = b''.join(marc_segments)
+            marc = b"".join(marc_segments)
             if not marc:
                 raise PyVgerException("No MARC data for MFHD %s" % mfhdid)
             rec = next(pymarc.MARCReader(marc))
@@ -182,10 +212,13 @@ class Voy(object):
             elif data[1] == "N":
                 suppress = False
             else:
-                raise PyVgerException("Bad suppression value %r for mfhd %s" %
-                                      (data[1], mfhdid))
+                raise PyVgerException(
+                    "Bad suppression value %r for mfhd %s" % (data[1], mfhdid)
+                )
             last_date = arrow.get(data[4]).datetime
-            return HoldingsRecord(rec, suppress, mfhdid, self, data[2], data[3], last_date)
+            return HoldingsRecord(
+                rec, suppress, mfhdid, self, data[2], data[3], last_date
+            )
 
     def iter_mfhds(self, locations, include_suppressed=False):
         """Iterate over all of the holdings in the given locations.
@@ -195,11 +228,11 @@ class Voy(object):
         :return: iterator of HoldingsRecord objects
 
         """
-        mm = self.tables['mfhd_master']
+        mm = self.tables["mfhd_master"]
         where_clause = mm.c.location_id.in_(locations)
         if not include_suppressed:
-            where_clause = sqla.and_(mm.c.suppress_in_opac == 'N', where_clause)
-        q = sqla.select([mm.c.mfhd_id], whereclause=where_clause, ).order_by(mm.c.mfhd_id)
+            where_clause = sqla.and_(mm.c.suppress_in_opac == "N", where_clause)
+        q = sqla.select([mm.c.mfhd_id], whereclause=where_clause).order_by(mm.c.mfhd_id)
 
         r = self.engine.execute(q)
         for row in r:
@@ -217,8 +250,8 @@ class Voy(object):
         :return: iterator of BibRecord objects
 
         """
-        bl = self.tables['bib_location']
-        bm = self.tables['bib_master']
+        bl = self.tables["bib_location"]
+        bm = self.tables["bib_master"]
         if locations and lib_id is None:
             q = bl.select(bl.c.location_id.in_(locations))
         elif lib_id:
@@ -226,9 +259,9 @@ class Voy(object):
         else:
             raise ValueError("must provide locations or lib_id, and not both")
         if not include_suppressed:
-            q = q.where(sqla.and_(bm.c.suppress_in_opac == 'N',
-                                  bm.c.bib_id == bl.c.bib_id)
-                        )
+            q = q.where(
+                sqla.and_(bm.c.suppress_in_opac == "N", bm.c.bib_id == bl.c.bib_id)
+            )
         r = self.engine.execute(q)
         for row in r:
             try:
@@ -236,22 +269,34 @@ class Voy(object):
             except UnicodeDecodeError:
                 continue
 
-    def iter_items(self, locations, include_temporary=False, include_suppressed_mfhd=False):
+    def iter_items(
+        self, locations, include_temporary=False, include_suppressed_mfhd=False
+    ):
         """Iterate over the item records in one or more locations.
 
         :param locations: list of locations to iterate over
         :param include_temporary: bool whether to include items with temporary locations in locations list
         :param include_suppressed_mfhd: bool, whether to include items attached to a suppressed MFHD
         """
-        item_table = self.tables['item']
+        item_table = self.tables["item"]
         where_clause = item_table.c.perm_location.in_(locations)
         if include_temporary:
-            where_clause = sqla.or_(where_clause, item_table.c.temp_location.in_(locations))
+            where_clause = sqla.or_(
+                where_clause, item_table.c.temp_location.in_(locations)
+            )
         if not include_suppressed_mfhd:
-            where_clause = sqla.and_(self.tables['mfhd_master'].c.suppress_in_opac == "N", where_clause)
-        q = sqla.select([item_table.c.item_id],
-                        whereclause=where_clause,
-                        from_obj=[item_table.join(self.tables['mfhd_item']).join(self.tables['mfhd_master'])])
+            where_clause = sqla.and_(
+                self.tables["mfhd_master"].c.suppress_in_opac == "N", where_clause
+            )
+        q = sqla.select(
+            [item_table.c.item_id],
+            whereclause=where_clause,
+            from_obj=[
+                item_table.join(self.tables["mfhd_item"]).join(
+                    self.tables["mfhd_master"]
+                )
+            ],
+        )
         r = self.engine.execute(q)
         for row in r:
             yield self.get_item(row[0])
@@ -276,11 +321,13 @@ class Voy(object):
         :param int item_id:
         :return: list(str) -- statuses
         """
-        query = sqla.sql.select(
-            [self.tables['item_status_type'].c.item_status_desc]).select_from(
-            self.tables['item_status'].join(
-                self.tables['item_status_type'])).where(
-            self.tables['item_status'].c.item_id == item_id)
+        query = (
+            sqla.sql.select([self.tables["item_status_type"].c.item_status_desc])
+            .select_from(
+                self.tables["item_status"].join(self.tables["item_status_type"])
+            )
+            .where(self.tables["item_status"].c.item_id == item_id)
+        )
         r = self.engine.execute(query)
         return [row[0] for row in r]
 
@@ -291,10 +338,11 @@ class Voy(object):
         :param int item_id: the Voyager item ID
         :return: int: the bib ID
         """
-        query = sqla.sql.select(
-            [self.tables['bib_mfhd'].c.bib_id]).select_from(
-            self.tables['mfhd_item'].join(self.tables['bib_mfhd'])).where(
-                self.tables['mfhd_item'].c.item_id == item_id)
+        query = (
+            sqla.sql.select([self.tables["bib_mfhd"].c.bib_id])
+            .select_from(self.tables["mfhd_item"].join(self.tables["bib_mfhd"]))
+            .where(self.tables["mfhd_item"].c.item_id == item_id)
+        )
 
         result = self.engine.execute(query)
         (row,) = result
@@ -306,7 +354,7 @@ class Voy(object):
         :param int bib_id: the Voyager bib id
         :return: datetime.datetime: when the record was added
         """
-        bmt = self.tables['bib_master']
+        bmt = self.tables["bib_master"]
         query = bmt.select().where(bmt.c.bib_id == bib_id)
         result = self.engine.execute(query)
         (row,) = result
@@ -318,7 +366,11 @@ class Voy(object):
         :param location: Voyager location code
         :return: int: numeric location id
         """
-        query = self.tables['location'].select().where(self.tables['location'].c.location_code == location)
+        query = (
+            self.tables["location"]
+            .select()
+            .where(self.tables["location"].c.location_code == location)
+        )
         result = self.engine.execute(query)
         (row,) = result
         return int(row.location_id)
@@ -362,10 +414,13 @@ class BibRecord(object):
         :return: a list of HoldingsRecord objects
         """
         curs = self.interface.connection.cursor()
-        result = curs.execute('''SELECT mfhd_id
+        result = curs.execute(
+            """SELECT mfhd_id
         FROM %(db)s.bib_mfhd
-        WHERE bib_mfhd.bib_id=:bib''' % {'db': self.interface.oracle_database},
-                              {'bib': self.bibid})
+        WHERE bib_mfhd.bib_id=:bib"""
+            % {"db": self.interface.oracle_database},
+            {"bib": self.bibid},
+        )
 
         rv = []
         for rec in result:
@@ -392,8 +447,16 @@ class HoldingsRecord(object):
     will ignore the TZ and fail because it thinks your datetime is off by your local offset.
     """
 
-    def __init__(self, record, suppressed, mfhdid, voyager_interface, location,
-                 location_display_name, last_date):
+    def __init__(
+        self,
+        record,
+        suppressed,
+        mfhdid,
+        voyager_interface,
+        location,
+        location_display_name,
+        last_date,
+    ):
         self.record = record
         self.suppressed = suppressed
         self.mfhdid = mfhdid
@@ -413,9 +476,10 @@ class HoldingsRecord(object):
 
     def get_items(self):
         """Return a list of ItemRecords for the holding's items."""
-        mi_table = self.interface.tables['mfhd_item']
+        mi_table = self.interface.tables["mfhd_item"]
         query = sqla.select([mi_table.c.item_id]).where(
-            mi_table.c.mfhd_id == self.mfhdid)
+            mi_table.c.mfhd_id == self.mfhdid
+        )
         res = self.interface.engine.execute(query)
         try:
             return [self.interface.get_item(i[0]) for i in res]
@@ -425,7 +489,7 @@ class HoldingsRecord(object):
 
     def get_bib(self):
         """Return the bib record to which this holding is attached."""
-        return self.interface.get_bib(self.record['004'].data)
+        return self.interface.get_bib(self.record["004"].data)
 
 
 class ItemRecord(object):
@@ -452,12 +516,28 @@ class ItemRecord(object):
     :param str note:
     """
 
-    def __init__(self, holding_id=None, item_id=None, item_type_id=None,
-                 perm_location_id=None, add_item_to_top=False, caption="",
-                 chron="", copy_number=0, enumeration="", free_text="",
-                 media_type_id=None, piece_count=1, price="0",
-                 spine_label="", temp_location_id=None, temp_type_id=None,
-                 year="", voyager_interface=None, note=""):
+    def __init__(
+        self,
+        holding_id=None,
+        item_id=None,
+        item_type_id=None,
+        perm_location_id=None,
+        add_item_to_top=False,
+        caption="",
+        chron="",
+        copy_number=0,
+        enumeration="",
+        free_text="",
+        media_type_id=None,
+        piece_count=1,
+        price="0",
+        spine_label="",
+        temp_location_id=None,
+        temp_type_id=None,
+        year="",
+        voyager_interface=None,
+        note="",
+    ):
         self.holding_id = holding_id
         self.item_id = item_id
         self.item_type_id = item_type_id
@@ -480,20 +560,20 @@ class ItemRecord(object):
 
     def get_mfhd(self):
         """Retrieve the holdings record to which this item is attached."""
-        mi = self.voyager_interface.tables['mfhd_item']
+        mi = self.voyager_interface.tables["mfhd_item"]
         q = mi.select(mi.c.item_id == self.item_id)
         r = self.voyager_interface.engine.execute(q)
         rows = list(r)
         if len(rows) > 1:
             raise PyVgerException("Multiple MFHDs attached to item %s", self.item_id)
-        return self.voyager_interface.get_mfhd(rows[0]['mfhd_id'])
+        return self.voyager_interface.get_mfhd(rows[0]["mfhd_id"])
 
     @classmethod
     def from_id(cls, item_id, voyager_interface):
         """Get item given ID."""
-        it = voyager_interface.tables['item']
-        mit = voyager_interface.tables['mfhd_item']
-        item_note_table = voyager_interface.tables['item_note']
+        it = voyager_interface.tables["item"]
+        mit = voyager_interface.tables["mfhd_item"]
+        item_note_table = voyager_interface.tables["item_note"]
 
         columns = [
             it.c.item_id,
@@ -515,9 +595,12 @@ class ItemRecord(object):
             mit.c.year,
         ]
 
-        q = sqla.select(columns, it.c.item_id == item_id,
-                        from_obj=[it.join(mit).outerjoin(item_note_table)],
-                        use_labels=False)
+        q = sqla.select(
+            columns,
+            it.c.item_id == item_id,
+            from_obj=[it.join(mit).outerjoin(item_note_table)],
+            use_labels=False,
+        )
         result = voyager_interface.engine.execute(q)
         rows = [x for x in result]
         if not rows:
@@ -528,30 +611,31 @@ class ItemRecord(object):
 
         data = rows[0]
 
-        return cls(item_id=data['item_id'],
-                   perm_location_id=data['perm_location'],
-                   enumeration=data['item_enum'],
-                   chron=data['chron'],
-                   note=data['item_note'],
-                   holding_id=data['mfhd_id'],
-                   item_type_id=data['item_type_id'],
-                   caption=data['caption'],
-                   copy_number=data['copy_number'],
-                   free_text=data['freetext'],
-                   media_type_id=data['media_type_id'],
-                   piece_count=data['pieces'],
-                   price=data['price'],
-                   spine_label=data['spine_label'],
-                   temp_location_id=data['temp_location'],
-                   temp_type_id=data['temp_item_type_id'],
-                   year=data['year'],
-                   voyager_interface=voyager_interface,
-                   )
+        return cls(
+            item_id=data["item_id"],
+            perm_location_id=data["perm_location"],
+            enumeration=data["item_enum"],
+            chron=data["chron"],
+            note=data["item_note"],
+            holding_id=data["mfhd_id"],
+            item_type_id=data["item_type_id"],
+            caption=data["caption"],
+            copy_number=data["copy_number"],
+            free_text=data["freetext"],
+            media_type_id=data["media_type_id"],
+            piece_count=data["pieces"],
+            price=data["price"],
+            spine_label=data["spine_label"],
+            temp_location_id=data["temp_location"],
+            temp_type_id=data["temp_item_type_id"],
+            year=data["year"],
+            voyager_interface=voyager_interface,
+        )
 
     @classmethod
     def from_barcode(cls, barcode, voyager_interface):
         """Get an item record given its barcode."""
-        ib = voyager_interface.tables['item_barcode']
+        ib = voyager_interface.tables["item_barcode"]
         q = sqla.select([ib.c.item_id], ib.c.item_barcode == barcode)
         result = voyager_interface.engine.execute(q)
         rows = [x for x in result]
@@ -566,8 +650,11 @@ class ItemRecord(object):
 
     def get_barcode(self):
         """Look up the active bacode for this item."""
-        ib = self.voyager_interface.tables['item_barcode']
-        q = sqla.select([ib.c.item_barcode], sqla.and_(ib.c.item_id == self.item_id, ib.c.barcode_status == "1"))
+        ib = self.voyager_interface.tables["item_barcode"]
+        q = sqla.select(
+            [ib.c.item_barcode],
+            sqla.and_(ib.c.item_id == self.item_id, ib.c.barcode_status == "1"),
+        )
         result = self.voyager_interface.engine.execute(q)
         rows = [x for x in result]
         if not rows:
@@ -600,7 +687,10 @@ class ItemRecord(object):
         bc.cItem.TempLocationID = self.temp_location_id
         bc.cItem.TempTypeID = self.temp_type_id
         bc.cItem.Year = self.year or ""
-        result = bc.UpdateItemData(CatLocationID=self.voyager_interface.get_location_id(
-            self.voyager_interface.cat_location))
+        result = bc.UpdateItemData(
+            CatLocationID=self.voyager_interface.get_location_id(
+                self.voyager_interface.cat_location
+            )
+        )
         if result[0]:
             raise PyVgerException("UpdateItemData error: {}".format(result))
