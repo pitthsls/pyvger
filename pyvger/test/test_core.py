@@ -17,6 +17,6 @@ def test_vger(mocker):
 def test_voy_bc(mocker):
     """Test creating the Voy object with BatchCat available."""
     pytest.importorskip('win32com')
-    mocker.patch('pyvger.batchcat.win32com')
+    mocker.patch('pyvger.batchcat.win32com', return_value=(0, []))
     pyvger.core.Voy(voy_username='test', voy_password='test')
     assert pyvger.batchcat.win32com.client.Dispatch.called
