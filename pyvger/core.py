@@ -1,4 +1,5 @@
 """core pyvger objects."""
+from decimal import Decimal
 import warnings
 
 import arrow
@@ -611,6 +612,8 @@ class ItemRecord(object):
 
         data = rows[0]
 
+        price = f'{Decimal(data["price"]) / 100:.2f}'
+
         return cls(
             item_id=data["item_id"],
             perm_location_id=data["perm_location"],
@@ -624,7 +627,7 @@ class ItemRecord(object):
             free_text=data["freetext"],
             media_type_id=data["media_type_id"],
             piece_count=data["pieces"],
-            price=data["price"],
+            price=price,
             spine_label=data["spine_label"],
             temp_location_id=data["temp_location"],
             temp_type_id=data["temp_item_type_id"],
