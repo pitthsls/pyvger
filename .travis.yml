@@ -40,7 +40,7 @@ deploy:
   provider: pypi
   user: Wooble
   password:
-    secure: hCCjmC5IU/Ch5Ux1WpOwnI5/veifCQ4uTs7z6HL7tQaaFkLArGlTSKuAGTs8P753PlxJwTiLvjYRkjHt0Tzav6GoZ3TkU4/QHnd6JZLhOth9uTj7ENgW3kWJ1zwZU9acLqDub1jqXglJVUWk6Ave1UMkNLFfhSnLW+v4x8m94Ww=
+    secure: "RcjgQvhg6lKw7zqoI+RybNxoS3OVt27X8b6htWB0asCic2aTf4QuqKL99vZhogJP+4KKMYFEzaxZullW3ynmXacnrFQk6Vr2beB8a+3PT4bkV+dXzopG1a0cQxYyHlbTdfyDuX1W0kHAyVXY8eeLQzYHPw1yMWrQTu430Sb6r22nlqXddd9mWqtoezSzasYDffTgiH+HRG4hcfs9yL9M2JXUwnDUqNk+BvO7Ag0THVXhP/DgXjZ3/WYhfGq65NbhVTm6OHu0bou33/MVbR5TGK82E8Um7GpRqx2VfEb7W3hqPBbPUh2Nc6eBM7S/6tPe7IBT6hO5YQcS+XqdVCRJq5Ia8RcjULEjrLOAfvL00DFQ8+esUB/uCJsX4EoFPU8K6FaqRLVBYMBF+BIuzVmC6pVm0dRdecJLoPSznufDqKbPlEBtQuK/AILwpdEa0rs9KAaWkRPf+B08BKRu8OO/OIQvdWpHS7t/j5HGXwh/85IfmU2T6QURbYZsm6X6RTJzYncaHCH0EAu7REAp4L6FoGzB5JKU3Ct5gINpw8m9yZDyYmlGutrimbU3M6PyIEJliXgtoWIXq26VB1IFdMaC/METYaDeENsTxndWRTg/pOBGGL7MEEZpcTqTgYMr2DPG5Pbos0Cf4V0KkqYQ4L6UoxfqE0UHoaglf+Wt/KAgOUc="
   on:
     condition: "! $TOXENV =~ ^flake8|lint|manifest$"
     tags: true
