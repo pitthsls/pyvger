@@ -37,4 +37,5 @@ TABLE_NAMES = (
     "patron_address",
     "circ_transactions",
     "call_slip",
+    "elink_index",
 )
