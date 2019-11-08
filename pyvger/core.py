@@ -221,20 +221,29 @@ class Voy(object):
                 rec, suppress, mfhdid, self, data[2], data[3], last_date
             )
 
-    def iter_mfhds(self, locations, include_suppressed=False):
+    def iter_mfhds(self, locations=None, lib_id=None, include_suppressed=False):
         """Iterate over all of the holdings in the given locations.
 
+        You must provide exactly one of locations or lib_id
+
         :param locations: list of locations to iterate over
+        :param lib_id: library ID to iterate over instead of using locations
         :param include_suppressed: whether suppressed records should be included
         :return: iterator of HoldingsRecord objects
 
         """
         mm = self.tables["mfhd_master"]
-        where_clause = mm.c.location_id.in_(locations)
+        if locations and lib_id is None:
+            where_clause = mm.c.location_id.in_(locations)
+        elif lib_id:
+            where_clause = sqla.and_(self.tables["location"].c.library_id == lib_id,
+                                     mm.c.location_id == self.tables["location"].c.library_id
+                                     )
+        else:
+            raise ValueError("must provide locations or lib_id, and not both")
         if not include_suppressed:
             where_clause = sqla.and_(mm.c.suppress_in_opac == "N", where_clause)
         q = sqla.select([mm.c.mfhd_id], whereclause=where_clause).order_by(mm.c.mfhd_id)
-
         r = self.engine.execute(q)
         for row in r:
             try:
@@ -244,6 +253,8 @@ class Voy(object):
 
     def iter_bibs(self, locations=None, lib_id=None, include_suppressed=False):
         """Iterate over all of the bibs in the given locations.
+
+        You must provide exactly one of locations or lib_id.
 
         :param locations: list of locations to iterate over
         :param lib_id: library ID to iterate over instead of using locations
