@@ -48,7 +48,7 @@ class Voy(object):
         if config is not None:
             cf = configparser.ConfigParser()
             cf.read(config)
-            for item in (
+            config_keys = [
                 "oracleuser",
                 "oraclepass",
                 "oracledsn",
@@ -57,7 +57,8 @@ class Voy(object):
                 "voy_path",
                 "cat_location",
                 "library_id",
-            ):
+            ]
+            for item in config_keys:
                 val = cf.get("Voyager", item, fallback="", raw=True).strip('"')
                 if val:
                     cfg[item] = val

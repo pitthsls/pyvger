@@ -28,12 +28,11 @@ jobs:
     env: TOXENV=py37
   - python: 3.8
     env: TOXENV=py38
-  - python: 3.6
+  - python: 3.8
     env: TOXENV=style
-  - python: 3.6
+  - python: 3.8
     env: TOXENV=manifest
-  - python: 3.6
-    env: TOXENV=lint
+
 
 
 deploy:
@@ -44,5 +43,5 @@ deploy:
   on:
     condition: "! $TOXENV =~ ^style|lint|manifest$"
     tags: true
-    python: 3.6
+    python: 3.8
   distributions: "sdist bdist_wheel"
