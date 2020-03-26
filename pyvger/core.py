@@ -237,7 +237,7 @@ class Voy(object):
             where_clause = mm.c.location_id.in_(locations)
         elif lib_id:
             where_clause = sqla.and_(self.tables["location"].c.library_id == lib_id,
-                                     mm.c.location_id == self.tables["location"].c.library_id
+                                     mm.c.location_id == self.tables["location"].c.location_id
                                      )
         else:
             raise ValueError("must provide locations or lib_id, and not both")
