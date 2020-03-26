@@ -35,10 +35,6 @@ jobs:
   - python: 3.6
     env: TOXENV=lint
 
-matrix:
-  allow_failures:
-    - python: 3.6
-      env: TOXENV=lint
 
 deploy:
   provider: pypi
