@@ -208,7 +208,11 @@ class Voy(object):
             marc = b"".join(marc_segments)
             if not marc:
                 raise PyVgerException("No MARC data for MFHD %s" % mfhdid)
-            rec = next(pymarc.MARCReader(marc))
+            try:
+                rec = next(pymarc.MARCReader(marc))
+            except Exception as e:
+                raise PyVgerException from e
+
             if data[1] == "Y":
                 suppress = True
             elif data[1] == "N":
@@ -222,7 +226,7 @@ class Voy(object):
                 rec, suppress, mfhdid, self, data[2], data[3], last_date
             )
 
-    def iter_mfhds(self, locations=None, lib_id=None, include_suppressed=False):
+    def iter_mfhds(self, locations=None, lib_id=None, include_suppressed=False, last=None):
         """Iterate over all of the holdings in the given locations.
 
         You must provide exactly one of locations or lib_id
@@ -230,6 +234,7 @@ class Voy(object):
         :param locations: list of locations to iterate over
         :param lib_id: library ID to iterate over instead of using locations
         :param include_suppressed: whether suppressed records should be included
+        :param last: last record number processed, to skip ahead
         :return: iterator of HoldingsRecord objects
 
         """
@@ -245,6 +250,8 @@ class Voy(object):
             raise ValueError("must provide locations or lib_id, and not both")
         if not include_suppressed:
             where_clause = sqla.and_(mm.c.suppress_in_opac == "N", where_clause)
+        if last is not None:
+            where_clause = sqla.and_(mm.c.mfhd_id > last, where_clause)
         q = sqla.select([mm.c.mfhd_id], whereclause=where_clause).order_by(mm.c.mfhd_id)
         r = self.engine.execute(q)
         for row in r:
